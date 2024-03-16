@@ -54,6 +54,11 @@ def selectSaR(i):
         name = "agriZone_Ep_Sa_beta_frostSamax"
     elif i == 13:
         name = "agriZone_Ep_Sa_beta_frostSamax_surfTemp"
+    # 14, and 15 added by DKim.
+    elif i == 14:
+        name = "urbZone_only_EIA"
+    elif i == 15:
+        name = "urbZone_hourlyEp_Sa_beta_EIA"
     return name
 
 
@@ -471,7 +476,7 @@ def agriZone_hourlyEp_Sa_beta(self, k):
     self.Fa1 = pcr.ifthenelse(
         self.SaN > 0,
         self.Fmin[k]
-        + (self.Fmax[k] - self.Fmin[k]) * e ** (-self.decF[k] * (1 - self.SaN)),
+        + (self.Fmax[k] - self.Fmin[k]) * pcr.exp((-self.decF[k] * (1 - self.SaN))),
         0,
     )
     self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd) - self.Qa1 - self.Fa1 - self.Ea1
@@ -1150,3 +1155,112 @@ def agriZone_hourlyEp_Sa_beta_Fvar(self, k):
     self.Ea_[k] = self.Ea
     self.Qa_[k] = self.Qa + self.Qaadd
     self.Fa_[k] = self.Fa
+
+
+def urbZone_only_EIA(self, k):
+    """
+    Implemented by Dkim.
+    Emulating impervious cover partitioning rainfall directly as rapid surface runoff using reservoir_Sa.
+    self.EIA is directly imported in wflow_topoflex.py using pcr.readmap(). *EIA = PCRaster that has Effective Impervious Area (0~1).
+    - Qeia: rapid surface runoff from impervious
+    - Fa: water that enters unsaturated zone
+    - Code for ini-file: 14
+    """
+    self.Qeia = self.Pe * self.EIA
+    self.Fa = pcr.max(self.Pe - self.Qeia, 0)
+
+    self.wbSa_[k] = (self.Pe - self.Qeia - self.Fa)
+
+    self.Qeia_[k] = self.Qeia
+    self.Fa_[k] = self.Fa
+    
+    
+def agriZone_Ep_Sa_beta_EIA(self, k):
+    """
+    Implemented by Dkim.
+    Emulating impervious cover partitioning rainfall directly as rapid surface runoff using reservoir_Sa.
+    self.EIA is directly imported in wflow_topoflex.py using pcr.readmap(). *EIA = Effective impervious area
+    - Formula for evaporation based on LP
+    - Qeia: rapid surface runoff from impervious
+    - Fa: water that enters the unsaturated zone
+    
+    - Outgoing fluxes are determined based on (value in previous timestep + inflow) 
+    and if this leads to negative storage, the outgoing fluxes are corrected to rato --> Eu is 
+    no longer taken into account for this correction
+    - Qa u is determined from overflow from Sa --> incorporation of beta function
+    - Fa is based on storage in Sa
+    - Code for ini-file: 15
+    """
+
+    # Dkim: No snow routine required as receiving Noah-MP calculated fluxes directly. PotEvaporation is already in hourly format. 
+    #JarvisCoefficients.calcEp(self, k)
+    #self.PotEvaporation = pcr.cover(pcr.ifthenelse(self.EpHour >= 0, self.EpHour, 0), 0)
+
+    self.samax2 = self.samax[k] * pcr.scalar(self.catchArea)
+    
+    self.Qeia = self.Pe * self.EIA
+    
+    self.Qaadd = pcr.max(self.Sa_t[k] + self.Pe - self.Qeia - self.samax2, 0)
+
+    self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd)
+    self.SaN = pcr.min(self.Sa[k] / self.samax2, 1)
+    self.SuN = self.Su[k] / self.sumax[k]
+
+    # Not sure if it is worth to keep this ET routine.
+    self.Ea1 = pcr.max((self.PotEvaporation - self.Ei), 0) * pcr.min(
+        self.Sa[k] / (self.samax2 * self.LP[k]), 1
+    )
+    self.Qa1 = (self.Pe - self.Qaadd) * (1 - (1 - self.SaN) ** self.beta[k])
+
+    self.Fa1 = pcr.ifthenelse(
+        self.SaN > 0,
+        self.Fmin[k]
+        + (self.Fmax[k] - self.Fmin[k]) * pcr.exp((-self.decF[k] * (1 - self.SaN))),
+        0,
+    )
+
+    self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd) - self.Qa1 - self.Fa1 - self.Ea1
+
+    self.Sa_diff = pcr.ifthenelse(self.Sa[k] < 0, self.Sa[k], 0)
+    self.Qa = (
+        self.Qa1
+        + (
+            self.Qa1
+            / pcr.ifthenelse(
+                self.Fa1 + self.Ea1 + self.Qa1 > 0, self.Fa1 + self.Ea1 + self.Qa1, 1
+            )
+        )
+        * self.Sa_diff
+    )
+    self.Fa = (
+        self.Fa1
+        + (
+            self.Fa1
+            / pcr.ifthenelse(
+                self.Fa1 + self.Ea1 + self.Qa1 > 0, self.Fa1 + self.Ea1 + self.Qa1, 1
+            )
+        )
+        * self.Sa_diff
+    )
+    self.Ea = (
+        self.Ea1
+        + (
+            self.Ea1
+            / pcr.ifthenelse(
+                self.Fa1 + self.Ea1 + self.Qa1 > 0, self.Fa1 + self.Ea1 + self.Qa1, 1
+            )
+        )
+        * self.Sa_diff
+    )
+    self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd) - self.Ea - self.Fa - self.Qa
+    self.Sa[k] = pcr.ifthenelse(self.Sa[k] < 0, 0, self.Sa[k])
+    self.Sa_diff2 = pcr.ifthen(self.Sa[k] < 0, self.Sa[k])
+
+    self.wbSa_[k] = (
+        self.Pe - self.Ea - self.Qa - self.Qeia - self.Qaadd - self.Fa - self.Sa[k] + self.Sa_t[k]
+    )
+
+    self.Ea_[k] = self.Ea
+    self.Qa_[k] = self.Qa + self.Qaadd
+    self.Fa_[k] = self.Fa
+    self.Qeia_[k] = self.Qeia

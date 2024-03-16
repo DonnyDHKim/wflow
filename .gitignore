@@ -72,11 +72,19 @@ ENV/
 *.csv
 *.nc
 *.tss
-*.ini
+# *.ini
 *.map
 runinfo
 intbl
-/wflow/version.py
+#/wflow/version.py
 *.bak
 outmaps/
 AltTemp.cvs
+
+# Donny Kim's Git Ignore list
+examples/wflow_maas_tofuflex/inmaps
+examples/wflow_maas_tofuflex/inmaps_OG
+examples/wflow_maas_tofuflex/instate_WARM
+examples/wflow_maas_tofuflex/staticmaps_OG
+examples/wflow_maas_tofuflex/test1
+*.xml

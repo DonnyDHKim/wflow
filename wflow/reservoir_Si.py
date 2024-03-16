@@ -10,8 +10,8 @@ List all function versions
 try:
     from wflow.wf_DynamicFramework import *
 except ImportError:
-    from .wf_DynamicFramework import *
-from . import JarvisCoefficients
+    from wflow.wf_DynamicFramework import *
+from wflow import JarvisCoefficients
 
 
 def selectSiR(i):
@@ -34,7 +34,9 @@ def interception_no_reservoir(self, k):
     Interception evaporation = 0.
     Storage in interception = 0.
     """
-    self.Pe_[k] = pcr.max(self.Precipitation, 0)
+    self.Pe = pcr.max(self.Precipitation, 0)
+    self.Ei = 0
+    self.Pe_[k] = self.Pe
     self.Ei_[k] = 0.0
     self.Si_[k] = 0.0
     self.wbSi_[k] = (
@@ -77,7 +79,6 @@ def interception_overflow2(self, k):
             self.Si[k] * self.percentArea, pcr.nominal(self.TopoId)
         )
 
-
 def interception_overflow3(self, k):
     """
     - Effective rainfall is all that does not fit into the interception reservoir
@@ -113,7 +114,6 @@ def interception_overflow3(self, k):
         self.Si[k] = pcr.areatotal(
             self.Si[k] * self.percentArea, pcr.nominal(self.TopoId)
         )
-
 
 def interception_overflow_Ep(self, k):
     """

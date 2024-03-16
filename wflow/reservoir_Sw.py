@@ -39,14 +39,15 @@ def snow_no_reservoir(self, k):
     self contains all the variables of the model
 
     """
-    try:
-        JarvisCoefficients.calcEpSnow(self, k)
-    except:
-        JarvisCoefficients.calcEpSnowHour(self, k)
-    self.PotEvaporation = self.EpHour
-    self.PotEvaporation = pcr.cover(pcr.ifthenelse(self.EpHour > 0, self.EpHour, 0), 0)
-
-    self.Qw_[k] = pcr.max(self.PrecipitationSnow, 0)
+    #try:
+    #    JarvisCoefficients.calcEpSnow(self, k)
+    #except:
+    #    JarvisCoefficients.calcEpSnowHour(self, k)
+    #self.PotEvaporation = self.EpHour
+    #self.PotEvaporation = pcr.cover(pcr.ifthenelse(self.EpHour > 0, self.EpHour, 0), 0)
+    #
+    #self.Qw_[k] = pcr.max(self.PrecipitationSnow, 0)
+    self.Qw_[k] = 0.0
     self.Ew_[k] = 0.0
     self.Sw[k] = 0.0
     self.wbSw_[k] = (

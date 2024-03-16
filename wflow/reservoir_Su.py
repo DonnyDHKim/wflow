@@ -59,6 +59,10 @@ def selectSuR(i):
         name = "unsatZone_forAgri_Ep_cropG"
     elif i == 20:
         name = "unsatZone_LP_beta_Ep_cropG"
+    elif i == 21:
+        name = "unsatZone_LP_beta_urb"
+    elif i == 22:
+        name = "unsatZone_forAgri_hourlyEp_urb"
     return name
 
 
@@ -1882,5 +1886,197 @@ def unsatZone_withAgri_Jarvis(self, k):
     self.Eu_[k] = self.Ea
     self.Qu_[k] = self.Qa + self.Qaadd
     self.Fa_[k] = self.Fa
+    self.Cap_[k] = self.Cap
+    self.Perc_[k] = self.Perc
+
+
+def unsatZone_LP_beta_urb(self, k):
+    """
+    Implemented by Dkim.
+    Intended to work with reservoir_Sa "urbZone_only_EIA".
+    Receiving "self.Fa" instead of "self.Pe". Changes are marked with comments.
+    - Potential evaporation is decreased by energy used for interception evaporation    
+    - Formula for evaporation linear until LP, from than with potential rate
+    - Outgoing fluxes are determined based on (value in previous timestep + inflow) 
+    and if this leads to negative storage, the outgoing fluxes are corrected to rato
+    - Qu is determined with a beta function (same as in HBV?)
+    - Code for ini-file: 21
+    """
+    self.Su[k] = pcr.ifthenelse(
+        self.Su_t[k] + self.Fa > self.sumax[k], self.sumax[k], self.Su_t[k] + self.Fa
+    ) # Change: self.Pe -> self.Fa
+    self.Quadd = pcr.ifthenelse(
+        self.Su_t[k] + self.Fa > self.sumax[k],
+        self.Su_t[k] + self.Fa - self.sumax[k],
+        0,
+    ) # Change: self.Pe -> self.Fa
+    self.SuN = self.Su[k] / self.sumax[k]
+    self.SiN = self.Si[k] / self.imax[k]
+
+    self.Eu1 = pcr.max((self.PotEvaporation - self.Ei), 0) * pcr.min(
+        self.Su[k] / (self.sumax[k] * self.LP[k]), 1
+    )
+
+    self.Qu1 = (self.Pe - self.Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
+    self.Perc1 = self.perc[k] * self.SuN
+    self.Su[k] = (
+        self.Su_t[k] + (self.Pe - self.Quadd) - self.Qu1 - self.Eu1 - self.Perc1
+    )
+
+    self.Su_diff = pcr.ifthenelse(self.Su[k] < 0, self.Su[k], 0)
+    self.Eu = (
+        self.Eu1
+        + (
+            self.Eu1
+            / pcr.ifthenelse(
+                self.Qu1 + self.Eu1 + self.Perc1 > 0,
+                self.Qu1 + self.Eu1 + self.Perc1,
+                1,
+            )
+        )
+        * self.Su_diff
+    )
+    self.Qu = (
+        self.Qu1
+        + (
+            self.Qu1
+            / pcr.ifthenelse(
+                self.Qu1 + self.Eu1 + self.Perc1 > 0,
+                self.Qu1 + self.Eu1 + self.Perc1,
+                1,
+            )
+        )
+        * self.Su_diff
+    )
+    self.Perc = pcr.ifthenelse(
+        self.Perc1 > 0,
+        self.Perc1
+        + (
+            self.Perc1
+            / pcr.ifthenelse(
+                self.Qu1 + self.Eu1 + self.Perc1 > 0,
+                self.Qu1 + self.Eu1 + self.Perc1,
+                1,
+            )
+        )
+        * self.Su_diff,
+        self.Perc1,
+    )
+    self.Su[k] = self.Su_t[k] + (self.Pe - self.Quadd) - self.Eu - self.Qu - self.Perc
+    self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
+    self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
+
+    self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
+    self.Su[k] = self.Su[k] + self.Cap
+
+    self.wbSu_[k] = (
+        self.Pe
+        - self.Eu
+        - self.Qu
+        - self.Quadd
+        - self.Perc
+        + self.Cap
+        - self.Su[k]
+        + self.Su_t[k]
+    )
+
+    self.Eu_[k] = self.Eu
+    self.Qu_[k] = self.Qu + self.Quadd
+    self.Cap_[k] = self.Cap
+    self.Perc_[k] = self.Perc
+    
+
+def unsatZone_forAgri_hourlyEp_urb(self, k):
+    """
+    Implemented by Dkim.
+    Intended to work with reservoir_Sa "urbZone_hourlyEp_Sa_beta_EIA". Changes are marked with comments.
+    - Potential evaporation is decreased by energy used for interception evaporation    
+    - Formula for evaporation based on beta/LP
+    - Outgoing fluxes are determined based on (value in previous timestep + inflow) 
+    and if this leads to negative storage, the outgoing fluxes are corrected to rato --> Eu is 
+    no longer taken into account for this correction
+    - Qu is determined with a beta function (same as in HBV?)
+    - inflow is infiltration from agriculture reservoir
+    - Code for ini-file: 22
+    """
+
+    self.Su[k] = pcr.ifthenelse(
+        self.Su_t[k] + self.Fa > self.sumax[k], self.sumax[k], self.Su_t[k] + self.Fa
+    )
+    self.Quadd = pcr.ifthenelse(
+        self.Su_t[k] + self.Fa > self.sumax[k],
+        self.Su_t[k] + self.Fa - self.sumax[k],
+        0,
+    )
+    self.SuN = self.Su[k] / self.sumax[k]
+    self.SiN = self.Si[k] / self.imax[k]
+
+    # Originally, Eu1 considered frozen soil's impact.
+    # No longer necessary when using urbZone_hourlyEp_Sa_beta_EIA. Removed: pcr.ifthenelse() & self.Ft_[k] 
+    self.Eu1 = pcr.max((self.PotEvaporation - self.Ei - self.Ea), 0) * pcr.min(self.Su[k] / (self.sumax[k] * self.LP[k]), 1)
+
+    self.Qu1 = (self.Fa - self.Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
+    self.Perc1 = self.perc[k] * self.SuN
+    self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - self.Qu1 - self.Eu - self.Perc1
+
+    self.Su_diff = pcr.ifthenelse(self.Su[k] < 0, self.Su[k], 0)
+    self.Eu = (
+        self.Eu1
+        + (
+            self.Eu1
+            / pcr.ifthenelse(
+                self.Qu1 + self.Eu1 + self.Perc1 > 0,
+                self.Qu1 + self.Eu1 + self.Perc1,
+                1,
+            )
+        )
+        * self.Su_diff
+    )
+    self.Qu = (
+        self.Qu1
+        + (
+            self.Qu1
+            / pcr.ifthenelse(
+                self.Qu1 + self.Eu1 + self.Perc1 > 0,
+                self.Qu1 + self.Eu1 + self.Perc1,
+                1,
+            )
+        )
+        * self.Su_diff
+    )
+    self.Perc = pcr.ifthenelse(
+        self.Perc1 > 0,
+        self.Perc1
+        + (
+            self.Perc1
+            / pcr.ifthenelse(
+                self.Qu1 + self.Eu1 + self.Perc1 > 0,
+                self.Qu1 + self.Eu1 + self.Perc1,
+                1,
+            )
+        )
+        * self.Su_diff,
+        self.Perc1,
+    )
+    self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - self.Eu - self.Qu - self.Perc
+    self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
+    self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
+
+    self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
+    self.Su[k] = self.Su[k] + self.Cap
+
+    self.wbSu_[k] = (
+        self.Fa
+        - self.Eu
+        - self.Qu
+        - self.Quadd
+        - self.Perc
+        + self.Cap
+        - self.Su[k]
+        + self.Su_t[k]
+    )
+
+    self.Eu_[k] = self.Eu
+    self.Qu_[k] = self.Qu + self.Quadd
     self.Cap_[k] = self.Cap
     self.Perc_[k] = self.Perc

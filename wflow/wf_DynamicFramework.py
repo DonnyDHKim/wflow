@@ -60,11 +60,12 @@ class runDateTimeInfo:
         datetimeend=dt.datetime(1990, 1, 5),
         timestepsecs=86400,
         mode="steps",
+        currentTimeStep = 0 #DKim
     ):
         self.runStartTime = datetimestart
         self.runEndTime = datetimeend
         self.timeStepSecs = timestepsecs
-        self.currentTimeStep = 0
+        self.currentTimeStep = currentTimeStep #DKim
         self.lastTimeStep = 0
         self.startadjusted = 0
         self.startendadjusted = 0
@@ -160,8 +161,8 @@ class runDateTimeInfo:
             else:
                 # self.runStartTime = datetimestart + datetime.timedelta(seconds=self.timeStepSecs)
                 self.runStartTime = (
-                    datetimestart  # + datetime.timedelta(seconds=self.timeStepSecs)
-                )
+                    datetimestart
+                )  # + datetime.timedelta(seconds=self.timeStepSecs)
                 self.startadjusted = 1
                 self.runStateTime = (
                     self.runStartTime
@@ -194,8 +195,8 @@ class runDateTimeInfo:
                 )
             else:
                 self.runStartTime = (
-                    datetimestart  # + datetime.timedelta(seconds=self.timeStepSecs)
-                )
+                    datetimestart
+                )  # + datetime.timedelta(seconds=self.timeStepSecs)
                 self.startadjusted = 1
                 self.runStateTime = self.runStartTime
 
@@ -402,7 +403,7 @@ class wf_sumavg:
 
 
 class wf_OutputTimeSeriesArea:
-    def __init__(self, area, oformat="csv", areafunction="average", tformat="steps"):
+    def __init__(self, area, oformat="csv", areafunction="average", tformat="steps"): #DKim: keep it to tformat="steps"
         """
         Replacement timeseries output function for the pcraster framework
 
@@ -486,14 +487,17 @@ class wf_OutputTimeSeriesArea:
         else:
             self.resmap = pcr.areaaverage(tmpvar, pcr.nominal(self.area))
 
-        self.remap_np = pcr.pcr2numpy(self.resmap, 0)
-        self.flatres = self.remap_np.flatten()[self.idx]
+        self.remap_np = pcr.pcr2numpy(self.resmap, 0).astype(np.float32) #DKim: don't think it is necessary, but...
+        self.flatres = [round(value, 4) for value in self.remap_np.flatten()[self.idx]] #DKim: set it to 4 decimal places instead of over 10. Runoff is in CMS, and USGS provides CFS in two decimal precision. 0.01 CFS = 0.28 L/s = approx 0.0003 CMS.
 
         thiswriter = self.fnamelist.index(fname)
         if dtobj and self.timeformat == "datetime":
             self.writer[thiswriter].writerow([str(dtobj)] + self.flatres.tolist())
         elif timestep:
-            self.writer[thiswriter].writerow([timestep] + self.flatres.tolist())
+            if isinstance(self.flatres, list): #DKim: if conditions as self.flatres already became a list in line 491.
+                self.writer[thiswriter].writerow([timestep] + self.flatres)
+            else:
+                self.writer[thiswriter].writerow([timestep] + self.flatres.tolist())
         else:
             self.writer[thiswriter].writerow([self.steps] + self.flatres.tolist())
             # self.flatres = np.insert(self.flatres,0,self.steps)
@@ -513,7 +517,9 @@ class wf_DynamicFramework(pcraster.framework.frameworkBase.FrameworkBase):
         lastTimeStep=0,
         firstTimestep=1,
         datetimestart=dt.datetime(1990, 1, 1),
+        datetimeend= dt.datetime(1990, 1, 5), #DKim
         timestepsecs=86400,
+        mode="steps" #DKim
     ):
         pcraster.framework.frameworkBase.FrameworkBase.__init__(self)
 
@@ -529,31 +535,50 @@ class wf_DynamicFramework(pcraster.framework.frameworkBase.FrameworkBase):
         self._d_model = userModel
         self._testRequirements()
 
-        dte = datetimestart + datetime.timedelta(
-            seconds=(lastTimeStep - firstTimestep) * timestepsecs
-        )
-
-        self.DT = runDateTimeInfo(
-            timestepsecs=timestepsecs,
-            datetimestart=datetimestart,
-            datetimeend=dte,
-            mode="steps",
-        )
-
-        if lastTimeStep != 0:
-            if firstTimestep == 0:
-                firstTimestep = 1
-            self.DT.update(runTimeSteps=(lastTimeStep - firstTimestep))
-            self.DT.update(currentTimeStep=firstTimestep - 1)
-
-        self.setviaAPI = {}
-        # Flag for each variable. If 1 it is set by the API before this timestep. Reset is done at the end of each timestep
-
-        if firstTimestep > lastTimeStep:
-            msg = (
-                "Cannot run dynamic framework: Start timestep smaller than end timestep"
+        # DKim: dte was troubling.
+        #dte = datetimestart + datetime.timedelta(
+        #    seconds=(lastTimeStep - firstTimestep) * timestepsecs
+        #)
+        
+        if datetimestart != dt.datetime(1990, 1, 1) and datetimeend != dt.datetime(1990, 1, 5):
+            self.DT = runDateTimeInfo(
+                timestepsecs=timestepsecs,
+                datetimestart=datetimestart,
+                datetimeend=datetimeend,
+                mode=mode,
             )
-            raise pcraster.framework.frameworkBase.FrameworkError(msg)
+            #self.DT.update(currentTimeStep=0)
+
+            #print(self.DT.currentTimeStep)
+            #self.DT.update(currentTimeStep=firstTimestep - 1)
+            #self.DT.currentDateTime = self.DT.currentDateTime - datetime.timedelta(seconds=timestepsecs)
+            #self.DT.nextDateTime = self.DT.nextDateTime - datetime.timedelta(seconds=timestepsecs)
+            #self.DT.update(currentDateTime=(self.DT.currentDateTime)-dt.timedelta(seconds=timestepsecs))
+            #self.DT.update(nextDateTime=(self.DT.nextDateTime)-dt.timedelta(seconds=timestepsecs))
+        else:
+            time_difference_seconds = (lastTimeStep - firstTimestep) * timestepsecs
+            dte = datetimestart + datetime.timedelta(seconds=time_difference_seconds)
+            self.DT = runDateTimeInfo(
+                timestepsecs=timestepsecs,
+                datetimestart=datetimestart,
+                datetimeend=dte,
+                mode="steps",
+            )
+
+            if lastTimeStep != 0:
+                if firstTimestep == 0:
+                    firstTimestep = 1
+                self.DT.update(runTimeSteps=(lastTimeStep - firstTimestep))
+                self.DT.update(currentTimeStep=firstTimestep - 1)
+                            
+            self.setviaAPI = {}
+            # Flag for each variable. If 1 it is set by the API before this timestep. Reset is done at the end of each timestep
+            
+            if firstTimestep > lastTimeStep:
+                msg = (
+                    "Cannot run dynamic framework: Start timestep smaller than end timestep"
+                )
+                raise pcraster.framework.frameworkBase.FrameworkError(msg)
 
         # fttb
         self._addMethodToClass(self._readmapNew)
@@ -3327,16 +3352,18 @@ class wf_DynamicFramework(pcraster.framework.frameworkBase.FrameworkBase):
 
         if hasattr(self._userModel(), "_inDynamic"):
             if self._userModel()._inDynamic() or self._inUpdateWeight():
-                timestep = self._userModel().currentTimeStep()
+                #timestep = self._userModel().currentTimeStep() #DKim: using datetime of the timestep instead of timestep index
+                nextDateTime = self.DT.nextDateTime
                 # print timestep
                 if "None" not in self.ncfile:
                     newName = name
                 else:
-                    newName = pcraster.framework.generateNameT(name, timestep)
+                    #newName = pcraster.framework.generateNameS(name, timestep) #DKim: generateNameT -> generateNameS
+                    newName = str(name + nextDateTime.strftime("%Y%m%d%H")) #DKim: it may need to be changed to str(name + nextDateTime.strftime("%Y%m%d%H")+".map")
 
         if style == 1:  # Normal reading of mapstack from DISK per via or via netcdf
             path = os.path.join(directoryPrefix, newName)
-            assert path is not ""
+            assert path != ""
 
             if self._userModel()._inDynamic():
                 if "None" not in self.ncfile:
