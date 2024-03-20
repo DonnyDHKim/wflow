@@ -82,9 +82,16 @@ outmaps/
 AltTemp.cvs
 
 # Donny Kim's Git Ignore list
+examples/wflow_maas_topoflex/inmaps/
+examples/wflow_maas_topoflex/inmaps_og
+examples/wflow_maas_topoflex/inmaps_dt
 examples/wflow_maas_tofuflex/inmaps
 examples/wflow_maas_tofuflex/inmaps_OG
 examples/wflow_maas_tofuflex/instate_WARM
 examples/wflow_maas_tofuflex/staticmaps_OG
 examples/wflow_maas_tofuflex/test1
+examples/wflow_maas_topoflex/test_dt
+examples/wflow_maas_tofuflex/test_dt
+examples/wflow_maas_tofuflex/inmaps_dt
+wflow_og/
 *.xml

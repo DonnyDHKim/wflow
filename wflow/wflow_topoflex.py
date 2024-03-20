@@ -329,7 +329,7 @@ class WflowModel(pcraster.framework.DynamicModel):
             for i in self.Classes
         ]
         pcr.report(self.percentArea, self.SaveDir + "/outmaps/percentArea.map")
-        pcr.report(self.surfaceArea, self.SaveDir + "/outmaps/surfaceArea.map")
+        #pcr.report(self.surfaceArea, self.SaveDir + "/outmaps/surfaceArea.map")
 
         pcr.report(self.sumprecip, self.SaveDir + "/outsum/sumprecip.map")
         pcr.report(self.sumevap, self.SaveDir + "/outsum/sumevap.map")
@@ -438,9 +438,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.IMPIRURFR_L = int(
             configget(self.config, "model", "L_IMPIRURFR", "0")
         )  # IMPIRURFR added by DKim. But is it necessary?
-        self.IRURFR_L = int(
-            configget(self.config, "model", "L_IRURFR", "0")
-        )  # combination of reservoirs that are distributed (1: all these reservoirs are distributed)
+        #self.IRURFR_L = int(
+        #    configget(self.config, "model", "L_IRURFR", "0")
+        #)  # combination of reservoirs that are distributed (1: all these reservoirs are distributed)
         self.URFR_L = int(
             configget(self.config, "model", "L_URFR", "0")
         )  # combination of reservoirs that are distributed (1: all these reservoirs are distributed)
@@ -629,6 +629,8 @@ class WflowModel(pcraster.framework.DynamicModel):
         )  #: Map with surface area per cell
         self.totalArea = pcr.areatotal(self.surfaceArea, pcr.nominal(self.TopoId))
         self.percentArea = self.surfaceArea / self.totalArea
+        # Dkim: testing to see if self.surfaceArea can be just integer
+        self.surfaceArea = int(np.nanmean(pcr.pcr2numpy(self.surfaceArea, mv=np.nan)))
         self.Transit = pcr.scalar(
             pcr.readmap(os.path.join(self.Dir, wflow_transit))
         )  #: Map with surface area per cell
@@ -1224,30 +1226,30 @@ class WflowModel(pcraster.framework.DynamicModel):
                 os.path.join(self.Dir, "instate", "WaterLevel.map")
             )
 
-        self.OldSurfaceRunoff = self.Qstate
+        #self.OldSurfaceRunoff = self.Qstate
 
         self.SurfaceRunoffMM = self.Qstate * self.QMMConv
         # Determine initial kinematic wave volume
-        self.KinWaveVolume = self.WaterLevel * self.Bw * self.DCL
-        self.OldKinWaveVolume = self.KinWaveVolume
+        #self.KinWaveVolume = self.WaterLevel * self.Bw * self.DCL
+        #self.OldKinWaveVolume = self.KinWaveVolume
 
-        self.wbSi_ = [self.ZeroMap] * len(self.Classes)
+        #self.wbSi_ = [self.ZeroMap] * len(self.Classes)
         self.wbSu_ = [self.ZeroMap] * len(self.Classes)
         self.wbSa_ = [self.ZeroMap] * len(self.Classes)
-        self.wbSw_ = [self.ZeroMap] * len(self.Classes)
+        #self.wbSw_ = [self.ZeroMap] * len(self.Classes)
         self.wbSf_ = [self.ZeroMap] * len(self.Classes)
         self.wbSfa_ = [self.ZeroMap] * len(self.Classes)
         self.wbSfrout = self.ZeroMap
         self.wbSs = self.ZeroMap
 
-        self.Ei_ = [self.ZeroMap] * len(self.Classes)
+        #self.Ei_ = [self.ZeroMap] * len(self.Classes)
         self.Pe_ = [self.ZeroMap] * len(self.Classes)
-        self.Si_ = [self.ZeroMap] * len(self.Classes)
+        #self.Si_ = [self.ZeroMap] * len(self.Classes)
         self.Eu_ = [self.ZeroMap] * len(self.Classes)
         self.Ea_ = [self.ZeroMap] * len(self.Classes)
-        self.Ew_ = [self.ZeroMap] * len(self.Classes)
+        #self.Ew_ = [self.ZeroMap] * len(self.Classes)
         self.Qu_ = [self.ZeroMap] * len(self.Classes)
-        self.Qw_ = [self.ZeroMap] * len(self.Classes)
+        #self.Qw_ = [self.ZeroMap] * len(self.Classes)
         self.Qa_ = [self.ZeroMap] * len(self.Classes)
         self.Cap_ = [self.ZeroMap] * len(self.Classes)
         self.Perc_ = [self.ZeroMap] * len(self.Classes)
@@ -1259,7 +1261,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.Qfcub_ = [self.ZeroMap] * len(self.Classes)
         self.Ep_ = [self.ZeroMap] * len(self.Classes)
         self.EpD_ = [self.ZeroMap] * len(self.Classes)
-        self.FrDur = [self.ZeroMap] * len(self.Classes)
+        #self.FrDur = [self.ZeroMap] * len(self.Classes)
         self.Ft_ = [self.ZeroMap] * len(self.Classes)
 
         self.JC_temp_ = [self.ZeroMap] * len(self.Classes)
@@ -1294,8 +1296,8 @@ class WflowModel(pcraster.framework.DynamicModel):
         # if self.thestep == 26:
         # 		pdb.set_trace()
 
-        self.Si_t = copylist(self.Si)
-        self.Sw_t = copylist(self.Sw)
+        #self.Si_t = copylist(self.Si)
+        #self.Sw_t = copylist(self.Sw)
         self.Su_t = copylist(self.Su)
         self.Sa_t = copylist(self.Sa)
         self.Sf_t = copylist(self.Sf)
@@ -1307,32 +1309,32 @@ class WflowModel(pcraster.framework.DynamicModel):
         ]  # copylist(self.convQu)
         self.convQa_t = [copylist(self.convQa[i]) for i in self.Classes]
 
-        if self.IRURFR_L:
-            self.PotEvaporation = pcr.areatotal(
-                self.PotEvaporation * self.percentArea, pcr.nominal(self.TopoId)
-            )
-            self.Precipitation = pcr.areatotal(
-                self.Precipitation * self.percentArea, pcr.nominal(self.TopoId)
-            )
-            if self.selectSW[0]: #if condition added by Dkim to allow NOT using temperature for tofuflex
-                self.Temperature = pcr.areaaverage(
-                    self.Temperature * self.percentArea, pcr.nominal(self.TopoId)
-                    )
+        #if self.IRURFR_L:
+        #    self.PotEvaporation = pcr.areatotal(
+        #        self.PotEvaporation * self.percentArea, pcr.nominal(self.TopoId)
+        #    )
+        #    self.Precipitation = pcr.areatotal(
+        #        self.Precipitation * self.percentArea, pcr.nominal(self.TopoId)
+        #    )
+        #    if self.selectSW[0]: #if condition added by Dkim to allow NOT using temperature for tofuflex
+        #        self.Temperature = pcr.areaaverage(
+        #            self.Temperature * self.percentArea, pcr.nominal(self.TopoId)
+        #            )
 
         self.PrecipTotal = (
             self.Precipitation
         )  # NB: self.PrecipTotal is the precipitation as in the inmaps and self.Precipitation is in fact self.Rainfall !!!!
-        if self.selectSw[0]: #DKim: if self.selectSw[0] is not None -> if self.selectSw[0]:
-            self.Precipitation = pcr.ifthenelse(
-                self.Temperature >= self.Tt[0], self.PrecipTotal, 0
-            )
-            self.PrecipitationSnow = pcr.ifthenelse(
-                self.Temperature < self.Tt[0], self.PrecipTotal, 0
-            )
+        #if self.selectSw[0]: #DKim: if self.selectSw[0] is not None -> if self.selectSw[0]:
+        #    self.Precipitation = pcr.ifthenelse(
+        #        self.Temperature >= self.Tt[0], self.PrecipTotal, 0
+        #    )
+        #    self.PrecipitationSnow = pcr.ifthenelse(
+        #        self.Temperature < self.Tt[0], self.PrecipTotal, 0
+        #    )
 
-        if hasattr(self, 'EpDay'): #DKim. if condition added to allow not using EpDay.
-            self.EpDay2 = self.EpDay * self.ECORR
-            self.EpDaySnow2 = self.EpDaySnow * self.ECORR
+        #if hasattr(self, 'EpDay'): #DKim. if condition added to allow not using EpDay.
+        #    self.EpDay2 = self.EpDay * self.ECORR
+        #    self.EpDaySnow2 = self.EpDaySnow * self.ECORR
 
         # if self.thestep >= 45:
         # pdb.set_trace()
@@ -1340,11 +1342,11 @@ class WflowModel(pcraster.framework.DynamicModel):
         for k in self.Classes:
 
             # SNOW =================================================================================================
-            if self.selectSw[k]:
-                eval_str = "reservoir_Sw.{:s}(self, k)".format(self.selectSw[k])
-            else:
-                eval_str = "reservoir_Sw.snow_no_reservoir(self, k)"
-            eval(eval_str)
+            #if self.selectSw[k]:
+            #    eval_str = "reservoir_Sw.{:s}(self, k)".format(self.selectSw[k])
+            #else:
+            #    eval_str = "reservoir_Sw.snow_no_reservoir(self, k)"
+            #eval(eval_str)
 
             # INTERCEPTION =========================================================================================
             if self.selectSi[k]:
@@ -1410,11 +1412,11 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.trackQWB_t = (sum(self.trackQ_t) / self.surfaceArea) * 1000
         self.WB = (
             self.Precipitation
-            - sum(np.multiply(self.Ei_, self.percent))
+            #- sum(np.multiply(self.Ei_, self.percent))
             - sum(np.multiply(self.Eu_, self.percent))
             - self.QtlagWB
-            - sum(np.multiply(self.Si, self.percent))
-            + sum(np.multiply(self.Si_t, self.percent))
+            #- sum(np.multiply(self.Si, self.percent))
+            #+ sum(np.multiply(self.Si_t, self.percent))
             - sum(np.multiply(self.Su, self.percent))
             + sum(np.multiply(self.Su_t, self.percent))
             - sum(np.multiply(self.Sf, self.percent))
@@ -1431,10 +1433,10 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.P = pcr.areatotal(
             self.PrecipTotal / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
         )
-        self.Ei = pcr.areatotal(
-            sum(np.multiply(self.Ei_, self.percent)) / 1000 * self.surfaceArea,
-            pcr.nominal(self.TopoId),
-        )
+        #self.Ei = pcr.areatotal(
+        #    sum(np.multiply(self.Ei_, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
         self.Ea = pcr.areatotal(
             sum(np.multiply(self.Ea_, self.percent)) / 1000 * self.surfaceArea,
             pcr.nominal(self.TopoId),
@@ -1443,29 +1445,29 @@ class WflowModel(pcraster.framework.DynamicModel):
             sum(np.multiply(self.Eu_, self.percent)) / 1000 * self.surfaceArea,
             pcr.nominal(self.TopoId),
         )
-        self.Ew = pcr.areatotal(
-            sum(np.multiply(self.Ew_, self.percent)) / 1000 * self.surfaceArea,
-            pcr.nominal(self.TopoId),
-        )
-        self.EwiCorr = pcr.areatotal(
-            sum(
-                np.multiply(
-                    np.multiply(self.Ew_, self.lamdaS / self.lamda), self.percent
-                )
-            )
-            / 1000
-            * self.surfaceArea,
-            pcr.nominal(self.TopoId),
-        )
+        #self.Ew = pcr.areatotal(
+        #    sum(np.multiply(self.Ew_, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        #self.EwiCorr = pcr.areatotal(
+        #    sum(
+        #        np.multiply(
+        #            np.multiply(self.Ew_, self.lamdaS / self.lamda), self.percent
+        #        )
+        #    )
+        #    / 1000
+        #    * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
         self.Qtot = self.QLagTot * self.timestepsecs
-        self.SiWB = pcr.areatotal(
-            sum(np.multiply(self.Si, self.percent)) / 1000 * self.surfaceArea,
-            pcr.nominal(self.TopoId),
-        )
-        self.Si_WB = pcr.areatotal(
-            sum(np.multiply(self.Si_t, self.percent)) / 1000 * self.surfaceArea,
-            pcr.nominal(self.TopoId),
-        )
+        #self.SiWB = pcr.areatotal(
+        #    sum(np.multiply(self.Si, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        #self.Si_WB = pcr.areatotal(
+        #    sum(np.multiply(self.Si_t, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
         self.SuWB = pcr.areatotal(
             sum(np.multiply(self.Su, self.percent)) / 1000 * self.surfaceArea,
             pcr.nominal(self.TopoId),
@@ -1498,14 +1500,14 @@ class WflowModel(pcraster.framework.DynamicModel):
             sum(np.multiply(self.Sfa_t, self.percent)) / 1000 * self.surfaceArea,
             pcr.nominal(self.TopoId),
         )
-        self.SwWB = pcr.areatotal(
-            sum(np.multiply(self.Sw, self.percent)) / 1000 * self.surfaceArea,
-            pcr.nominal(self.TopoId),
-        )
-        self.Sw_WB = pcr.areatotal(
-            sum(np.multiply(self.Sw_t, self.percent)) / 1000 * self.surfaceArea,
-            pcr.nominal(self.TopoId),
-        )
+        #self.SwWB = pcr.areatotal(
+        #    sum(np.multiply(self.Sw, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        #self.Sw_WB = pcr.areatotal(
+        #    sum(np.multiply(self.Sw_t, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
         self.SsWB = pcr.areatotal(
             self.Ss / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
         )
@@ -1561,20 +1563,20 @@ class WflowModel(pcraster.framework.DynamicModel):
         # WBtot in m3/s   -- volgens mij moet dit m3/h zijn ??? TODO!
         self.WBtot = (
             self.P
-            - self.Ei
+            #- self.Ei
             #            + self.EwiCorr    #adapted june 2020 as Ew is already counted in Ei so seems to be double counted here --- TO DO: check if this correction applies for all configurations and timesteps
             #            - self.Ew
             - self.Ea
             - self.Eu
             - self.Qtot
-            - self.SiWB
-            + self.Si_WB
+            #- self.SiWB
+            #+ self.Si_WB
             - self.SuWB
             + self.Su_WB
             - self.SaWB
             + self.Sa_WB
-            - self.SwWB
-            + self.Sw_WB
+            #- self.SwWB
+            #+ self.Sw_WB
             - self.SfWB
             + self.Sf_WB
             - self.SfaWB
@@ -1596,10 +1598,10 @@ class WflowModel(pcraster.framework.DynamicModel):
         )  # accumulated rainfall for water balance (m/h)
         self.sumevap = (
             self.sumevap
-            + sum(np.multiply(self.Ei_, self.percent))
+            #+ sum(np.multiply(self.Ei_, self.percent))
             + sum(np.multiply(self.Eu_, self.percent))
             + sum(np.multiply(self.Ea_, self.percent))
-            + sum(np.multiply(self.Ew_, self.percent))
+            #+ sum(np.multiply(self.Ew_, self.percent))
         )  # accumulated evaporation for water balance (m/h)
         try:
             self.sumpotevap = (
@@ -1612,9 +1614,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         )  # accumulated runoff for water balance (m/h)
         self.sumwb = self.sumwb + self.WB
 
-        self.sumE = sum(np.multiply(self.Ei_, self.percent)) + sum(
-            np.multiply(self.Eu_, self.percent)
-        )
+        #self.sumE = sum(np.multiply(self.Ei_, self.percent)) + sum(
+        #    np.multiply(self.Eu_, self.percent)
+        #)
 
         self.QCatchmentMM = self.Qstate * self.QMMConvUp
 

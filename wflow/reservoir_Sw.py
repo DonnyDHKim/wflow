@@ -47,12 +47,12 @@ def snow_no_reservoir(self, k):
     #self.PotEvaporation = pcr.cover(pcr.ifthenelse(self.EpHour > 0, self.EpHour, 0), 0)
     #
     #self.Qw_[k] = pcr.max(self.PrecipitationSnow, 0)
-    self.Qw_[k] = 0.0
-    self.Ew_[k] = 0.0
-    self.Sw[k] = 0.0
-    self.wbSw_[k] = (
-        self.Precipitation - self.Ew_[k] - self.Qw_[k] - self.Sw[k] + self.Sw_t[k]
-    )
+    #self.Qw_[k] = 0.0
+    #self.Ew_[k] = 0.0
+    #self.Sw[k] = 0.0
+    #self.wbSw_[k] = (
+    #    self.Precipitation - self.Ew_[k] - self.Qw_[k] - self.Sw[k] + self.Sw_t[k]
+    #)
 
 
 def snow(self, k):

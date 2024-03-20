@@ -95,12 +95,15 @@ def unsatZone_LP_beta(self, k):
     - Qu is determined with a beta function (same as in HBV?)
     - Code for ini-file: 1
     """
+	
+    Su_operator = self.Su_t[k] + self.Pe # DKim: this operation is done way too many times
+    
     self.Su[k] = pcr.ifthenelse(
-        self.Su_t[k] + self.Pe > self.sumax[k], self.sumax[k], self.Su_t[k] + self.Pe
+        Su_operator > self.sumax[k], self.sumax[k], Su_operator
     )
     self.Quadd = pcr.ifthenelse(
-        self.Su_t[k] + self.Pe > self.sumax[k],
-        self.Su_t[k] + self.Pe - self.sumax[k],
+        Su_operator > self.sumax[k],
+        Su_operator - self.sumax[k],
         0,
     )
     self.SuN = self.Su[k] / self.sumax[k]
@@ -110,20 +113,25 @@ def unsatZone_LP_beta(self, k):
         self.Su[k] / (self.sumax[k] * self.LP[k]), 1
     )
 
-    self.Qu1 = (self.Pe - self.Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
+    delta_Pe_Quadd = self.Pe - self.Quadd # DKim: this operation is done way too many times
+	
+    self.Qu1 = (delta_Pe_Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
     self.Perc1 = self.perc[k] * self.SuN
     self.Su[k] = (
-        self.Su_t[k] + (self.Pe - self.Quadd) - self.Qu1 - self.Eu1 - self.Perc1
+        self.Su_t[k] + (delta_Pe_Quadd) - self.Qu1 - self.Eu1 - self.Perc1
     )
 
     self.Su_diff = pcr.ifthenelse(self.Su[k] < 0, self.Su[k], 0)
+	
+    WB_operator = self.Qu1 + self.Eu1 + self.Perc1 # DKim: this operation is done way too many times
+	
     self.Eu = (
         self.Eu1
         + (
             self.Eu1
             / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
+                WB_operator > 0,
+                WB_operator,
                 1,
             )
         )
@@ -134,8 +142,8 @@ def unsatZone_LP_beta(self, k):
         + (
             self.Qu1
             / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
+                WB_operator > 0,
+                WB_operator,
                 1,
             )
         )
@@ -147,15 +155,15 @@ def unsatZone_LP_beta(self, k):
         + (
             self.Perc1
             / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
+                WB_operator > 0,
+                WB_operator,
                 1,
             )
         )
         * self.Su_diff,
         self.Perc1,
     )
-    self.Su[k] = self.Su_t[k] + (self.Pe - self.Quadd) - self.Eu - self.Qu - self.Perc
+    self.Su[k] = self.Su_t[k] + (delta_Pe_Quadd) - self.Eu - self.Qu - self.Perc
     self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
     self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
 
@@ -1999,13 +2007,14 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
     - inflow is infiltration from agriculture reservoir
     - Code for ini-file: 22
     """
+    Su_operator = self.Su_t[k] + self.Fa # DKim: this operation is done way too many times
 
     self.Su[k] = pcr.ifthenelse(
-        self.Su_t[k] + self.Fa > self.sumax[k], self.sumax[k], self.Su_t[k] + self.Fa
+        Su_operator > self.sumax[k], self.sumax[k], Su_operator
     )
     self.Quadd = pcr.ifthenelse(
-        self.Su_t[k] + self.Fa > self.sumax[k],
-        self.Su_t[k] + self.Fa - self.sumax[k],
+        Su_operator > self.sumax[k],
+        Su_operator - self.sumax[k],
         0,
     )
     self.SuN = self.Su[k] / self.sumax[k]
@@ -2015,18 +2024,24 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
     # No longer necessary when using urbZone_hourlyEp_Sa_beta_EIA. Removed: pcr.ifthenelse() & self.Ft_[k] 
     self.Eu1 = pcr.max((self.PotEvaporation - self.Ei - self.Ea), 0) * pcr.min(self.Su[k] / (self.sumax[k] * self.LP[k]), 1)
 
-    self.Qu1 = (self.Fa - self.Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
+    delta_Fa_Quadd = self.Fa - self.Quadd # DKim: this operation is done way too many times
+
+
+    self.Qu1 = (delta_Fa_Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
     self.Perc1 = self.perc[k] * self.SuN
-    self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - self.Qu1 - self.Eu - self.Perc1
+    self.Su[k] = self.Su_t[k] + (delta_Fa_Quadd) - self.Qu1 - self.Eu - self.Perc1
 
     self.Su_diff = pcr.ifthenelse(self.Su[k] < 0, self.Su[k], 0)
+	
+    WB_operator = self.Qu1 + self.Eu1 + self.Perc1 # DKim: this operation is done way too many times
+
     self.Eu = (
         self.Eu1
         + (
             self.Eu1
             / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
+                WB_operator > 0,
+                WB_operator,
                 1,
             )
         )
@@ -2037,8 +2052,8 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
         + (
             self.Qu1
             / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
+                WB_operator > 0,
+                WB_operator,
                 1,
             )
         )
@@ -2050,15 +2065,15 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
         + (
             self.Perc1
             / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
+                WB_operator > 0,
+                WB_operator,
                 1,
             )
         )
         * self.Su_diff,
         self.Perc1,
     )
-    self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - self.Eu - self.Qu - self.Perc
+    self.Su[k] = self.Su_t[k] + (delta_Fa_Quadd) - self.Eu - self.Qu - self.Perc
     self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
     self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
 

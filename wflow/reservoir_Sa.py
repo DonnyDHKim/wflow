@@ -1202,7 +1202,9 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
     
     self.Qaadd = pcr.max(self.Sa_t[k] + self.Pe - self.Qeia - self.samax2, 0)
 
-    self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd)
+    delta_Pe_Qaadd = self.Pe - self.Qaadd # DKim: this operation is done way too many times
+    
+    self.Sa[k] = self.Sa_t[k] + (delta_Pe_Qaadd)
     self.SaN = pcr.min(self.Sa[k] / self.samax2, 1)
     self.SuN = self.Su[k] / self.sumax[k]
 
@@ -1210,7 +1212,7 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
     self.Ea1 = pcr.max((self.PotEvaporation - self.Ei), 0) * pcr.min(
         self.Sa[k] / (self.samax2 * self.LP[k]), 1
     )
-    self.Qa1 = (self.Pe - self.Qaadd) * (1 - (1 - self.SaN) ** self.beta[k])
+    self.Qa1 = (delta_Pe_Qaadd) * (1 - (1 - self.SaN) ** self.beta[k])
 
     self.Fa1 = pcr.ifthenelse(
         self.SaN > 0,
@@ -1219,15 +1221,18 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
         0,
     )
 
-    self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd) - self.Qa1 - self.Fa1 - self.Ea1
+    self.Sa[k] = self.Sa_t[k] + (delta_Pe_Qaadd) - self.Qa1 - self.Fa1 - self.Ea1
 
     self.Sa_diff = pcr.ifthenelse(self.Sa[k] < 0, self.Sa[k], 0)
+    
+    WB_operator = self.Fa1 + self.Ea1 + self.Qa1 # DKim: this operation is done way too many times
+    
     self.Qa = (
         self.Qa1
         + (
             self.Qa1
             / pcr.ifthenelse(
-                self.Fa1 + self.Ea1 + self.Qa1 > 0, self.Fa1 + self.Ea1 + self.Qa1, 1
+                WB_operator > 0, WB_operator, 1
             )
         )
         * self.Sa_diff
@@ -1237,7 +1242,7 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
         + (
             self.Fa1
             / pcr.ifthenelse(
-                self.Fa1 + self.Ea1 + self.Qa1 > 0, self.Fa1 + self.Ea1 + self.Qa1, 1
+                WB_operator > 0, WB_operator, 1
             )
         )
         * self.Sa_diff
@@ -1247,12 +1252,12 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
         + (
             self.Ea1
             / pcr.ifthenelse(
-                self.Fa1 + self.Ea1 + self.Qa1 > 0, self.Fa1 + self.Ea1 + self.Qa1, 1
+                WB_operator > 0, WB_operator, 1
             )
         )
         * self.Sa_diff
     )
-    self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd) - self.Ea - self.Fa - self.Qa
+    self.Sa[k] = self.Sa_t[k] + (delta_Pe_Qaadd) - self.Ea - self.Fa - self.Qa
     self.Sa[k] = pcr.ifthenelse(self.Sa[k] < 0, 0, self.Sa[k])
     self.Sa_diff2 = pcr.ifthen(self.Sa[k] < 0, self.Sa[k])
 

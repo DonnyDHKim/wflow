@@ -77,9 +77,9 @@ def fastRunoff_lag2(self, k):
     else:
         self.Qu = self.Qu_[k]
 
-    self.D[k] = pcr.ifthenelse(
-        self.D[k] >= 1, 0.95, self.D[k]
-    )  # make sure D[k] never exceeds 1 -- especially useful for calibration with multiplication factor. todo: check what should be done if you want D = 1
+    #self.D[k] = pcr.ifthenelse(
+    #    self.D[k] >= 1, 0.95, self.D[k] # DKim: this needs to be handled outside.
+    #)  # make sure D[k] never exceeds 1 -- especially useful for calibration with multiplication factor. todo: check what should be done if you want D = 1
     self.Qfin = (1 - self.D[k]) * self.Qu
 
     # self.D[k] < 1.00: changed to checking if the max value of the map is less than 1 when applying a D map instead of a single value read from the ini file.
@@ -389,12 +389,12 @@ def routingQf_Qs_grid(self):
     )  # total local discharge in m3/s
     self.QtotNoRout = pcr.accuflux(self.TopoLdd, self.Qtotal)
     self.Qstate_t = self.Qstate
-    self.Qtest = self.Qstate + self.Qtotal
+    self.Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
     self.Qrout = pcr.accutraveltimeflux(
-        self.TopoLdd, self.Qstate + self.Qtotal, self.velocity
+        self.TopoLdd, self.Qtest, self.velocity
     )
     self.Qstate = pcr.accutraveltimestate(
-        self.TopoLdd, self.Qstate + self.Qtotal, self.velocity
+        self.TopoLdd, self.Qtest, self.velocity
     )
 
     self.Qtlag = self.Qrout
@@ -416,12 +416,12 @@ def routingQf_Qs_grid_mm(self):
     self.Qtotal = self.Qtot
     self.QtotNoRout = pcr.accuflux(self.TopoLdd, self.Qtotal)
     self.Qstate_t = self.Qstate
-    self.Qtest = self.Qstate + self.Qtotal
+    self.Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
     self.Qrout = pcr.accutraveltimeflux(
-        self.TopoLdd, self.Qstate + self.Qtotal, self.velocity
+        self.TopoLdd, self.Qtest, self.velocity
     )
     self.Qstate = pcr.accutraveltimestate(
-        self.TopoLdd, self.Qstate + self.Qtotal, self.velocity
+        self.TopoLdd, self.Qtest, self.velocity
     )
 
     self.Qtlag = self.Qrout

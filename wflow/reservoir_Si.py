@@ -34,14 +34,14 @@ def interception_no_reservoir(self, k):
     Interception evaporation = 0.
     Storage in interception = 0.
     """
-    self.Pe = pcr.max(self.Precipitation, 0)
+    self.Pe = self.Precipitation
     self.Ei = 0
-    self.Pe_[k] = self.Pe
-    self.Ei_[k] = 0.0
-    self.Si_[k] = 0.0
-    self.wbSi_[k] = (
-        self.Precipitation - self.Ei_[k] - self.Pe_[k] - self.Si[k] + self.Si_t[k]
-    )
+    #self.Pe_[k] = self.Pe
+    #self.Ei_[k] = 0.0
+    #self.Si_[k] = 0.0
+    #self.wbSi_[k] = (
+    #    self.Precipitation - self.Ei_[k] - self.Pe_[k] - self.Si[k] + self.Si_t[k]
+    #)
 
 
 def interception_overflow2(self, k):
