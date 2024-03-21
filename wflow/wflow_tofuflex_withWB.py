@@ -340,9 +340,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         pcr.report(self.sumprecip, self.SaveDir + "/outsum/sumprecip.map")
         pcr.report(self.sumevap, self.SaveDir + "/outsum/sumevap.map")
         pcr.report(self.sumpotevap, self.SaveDir + "/outsum/sumpotevap.map")
-        #pcr.report(self.sumtemp, self.SaveDir + "/outsum/sumtemp.map")
+        pcr.report(self.sumtemp, self.SaveDir + "/outsum/sumtemp.map")
         pcr.report(self.sumrunoff, self.SaveDir + "/outsum/sumrunoff.map")
-        #pcr.report(self.sumwb, self.SaveDir + "/outsum/sumwb.map")
+        pcr.report(self.sumwb, self.SaveDir + "/outsum/sumwb.map")
 
     def initial(self):
 
@@ -1244,14 +1244,14 @@ class WflowModel(pcraster.framework.DynamicModel):
         #self.KinWaveVolume = self.WaterLevel * self.Bw * self.DCL
         #self.OldKinWaveVolume = self.KinWaveVolume
 
-        ##self.wbSi_ = [self.ZeroMap] * len(self.Classes)
-        #self.wbSu_ = [self.ZeroMap] * len(self.Classes)
-        #self.wbSa_ = [self.ZeroMap] * len(self.Classes)
-        ##self.wbSw_ = [self.ZeroMap] * len(self.Classes)
-        #self.wbSf_ = [self.ZeroMap] * len(self.Classes)
-        #self.wbSfa_ = [self.ZeroMap] * len(self.Classes)
-        #self.wbSfrout = self.ZeroMap
-        #self.wbSs = self.ZeroMap
+        #self.wbSi_ = [self.ZeroMap] * len(self.Classes)
+        self.wbSu_ = [self.ZeroMap] * len(self.Classes)
+        self.wbSa_ = [self.ZeroMap] * len(self.Classes)
+        #self.wbSw_ = [self.ZeroMap] * len(self.Classes)
+        self.wbSf_ = [self.ZeroMap] * len(self.Classes)
+        self.wbSfa_ = [self.ZeroMap] * len(self.Classes)
+        self.wbSfrout = self.ZeroMap
+        self.wbSs = self.ZeroMap
 
         #self.Ei_ = [self.ZeroMap] * len(self.Classes)
         self.Pe_ = [self.ZeroMap] * len(self.Classes)
@@ -1421,222 +1421,222 @@ class WflowModel(pcraster.framework.DynamicModel):
             eval_str = "reservoir_Sf.noRouting(self)"
         eval(eval_str)
 
-        ## WATER BALANCE (per reservoir, per cell) ========================================================================================
-        #self.QtlagWB = (self.Qtlag / self.surfaceArea) * 1000 * self.timestepsecs
-        #self.convQuWB = [sum(self.convQu[i]) for i in self.Classes]
-        #self.convQuWB_t = [sum(self.convQu_t[i]) for i in self.Classes]
-        #self.convQaWB = [sum(self.convQa[i]) for i in self.Classes]
-        #self.convQaWB_t = [sum(self.convQa_t[i]) for i in self.Classes]
-        #self.trackQWB = (sum(self.trackQ) / self.surfaceArea) * 1000
-        #self.trackQWB_t = (sum(self.trackQ_t) / self.surfaceArea) * 1000
-        #self.WB = (
-        #    self.Precipitation
-        #    #- sum(np.multiply(self.Ei_, self.percent))
-        #    - sum(np.multiply(self.Eu_, self.percent))
-        #    - self.QtlagWB
-        #    #- sum(np.multiply(self.Si, self.percent))
-        #    #+ sum(np.multiply(self.Si_t, self.percent))
-        #    - sum(np.multiply(self.Su, self.percent))
-        #    + sum(np.multiply(self.Su_t, self.percent))
-        #    - sum(np.multiply(self.Sf, self.percent))
-        #    + sum(np.multiply(self.Sf_t, self.percent))
-        #    - sum(np.multiply(self.Ss, self.percent))
-        #    + sum(np.multiply(self.Ss_t, self.percent))
-        #    - self.trackQWB
-        #    + self.trackQWB_t
-        #    - sum(np.multiply(self.convQuWB, self.percent))
-        #    + sum(np.multiply(self.convQuWB_t, self.percent))
+        # WATER BALANCE (per reservoir, per cell) ========================================================================================
+        self.QtlagWB = (self.Qtlag / self.surfaceArea) * 1000 * self.timestepsecs
+        self.convQuWB = [sum(self.convQu[i]) for i in self.Classes]
+        self.convQuWB_t = [sum(self.convQu_t[i]) for i in self.Classes]
+        self.convQaWB = [sum(self.convQa[i]) for i in self.Classes]
+        self.convQaWB_t = [sum(self.convQa_t[i]) for i in self.Classes]
+        self.trackQWB = (sum(self.trackQ) / self.surfaceArea) * 1000
+        self.trackQWB_t = (sum(self.trackQ_t) / self.surfaceArea) * 1000
+        self.WB = (
+            self.Precipitation
+            #- sum(np.multiply(self.Ei_, self.percent))
+            - sum(np.multiply(self.Eu_, self.percent))
+            - self.QtlagWB
+            #- sum(np.multiply(self.Si, self.percent))
+            #+ sum(np.multiply(self.Si_t, self.percent))
+            - sum(np.multiply(self.Su, self.percent))
+            + sum(np.multiply(self.Su_t, self.percent))
+            - sum(np.multiply(self.Sf, self.percent))
+            + sum(np.multiply(self.Sf_t, self.percent))
+            - sum(np.multiply(self.Ss, self.percent))
+            + sum(np.multiply(self.Ss_t, self.percent))
+            - self.trackQWB
+            + self.trackQWB_t
+            - sum(np.multiply(self.convQuWB, self.percent))
+            + sum(np.multiply(self.convQuWB_t, self.percent))
+        )
+
+        #    #fuxes and states in m3/h
+        self.P = pcr.areatotal(
+            self.PrecipTotal / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
+        )
+        #self.Ei = pcr.areatotal(
+        #    sum(np.multiply(self.Ei_, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
         #)
+        self.Ea = pcr.areatotal(
+            sum(np.multiply(self.Ea_, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.Eu = pcr.areatotal(
+            sum(np.multiply(self.Eu_, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        #self.Ew = pcr.areatotal(
+        #    sum(np.multiply(self.Ew_, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        #self.EwiCorr = pcr.areatotal(
+        #                     
+        #                                                                          
+        #    sum(np.multiply(np.multiply(self.Ew_, self.lamdaS / self.lamda), self.percent))
+        #      
+        #           
+        #    / 1000
+        #    * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        self.Qtot = self.QLagTot * self.timestepsecs
+        #self.SiWB = pcr.areatotal(
+        #    sum(np.multiply(self.Si, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        #self.Si_WB = pcr.areatotal(
+        #    sum(np.multiply(self.Si_t, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        self.SuWB = pcr.areatotal(
+            sum(np.multiply(self.Su, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.Su_WB = pcr.areatotal(
+            sum(np.multiply(self.Su_t, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.SaWB = pcr.areatotal(
+            sum(np.multiply(self.Sa, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.Sa_WB = pcr.areatotal(
+            sum(np.multiply(self.Sa_t, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.SfWB = pcr.areatotal(
+            sum(np.multiply(self.Sf, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.Sf_WB = pcr.areatotal(
+            sum(np.multiply(self.Sf_t, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.SfaWB = pcr.areatotal(
+            sum(np.multiply(self.Sfa, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.Sfa_WB = pcr.areatotal(
+            sum(np.multiply(self.Sfa_t, self.percent)) / 1000 * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        #self.SwWB = pcr.areatotal(
+        #    sum(np.multiply(self.Sw, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        #self.Sw_WB = pcr.areatotal(
+        #    sum(np.multiply(self.Sw_t, self.percent)) / 1000 * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
+        self.SsWB = pcr.areatotal(
+            self.Ss / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
+        )
+        self.Ss_WB = pcr.areatotal(
+            self.Ss_t / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
+        )
+        self.convQuWB = pcr.areatotal(
+            sum(np.multiply([sum(self.convQu[i]) for i in self.Classes], self.percent))
+            / 1000
+            * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.convQu_WB = pcr.areatotal(
+            sum(np.multiply([sum(self.convQu_t[i]) for i in self.Classes], self.percent))
+            / 1000
+            * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.convQaWB = pcr.areatotal(
+            sum(np.multiply([sum(self.convQa[i]) for i in self.Classes], self.percent))
+            / 1000
+            * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.convQa_WB = pcr.areatotal(
+            sum(np.multiply([sum(self.convQa_t[i]) for i in self.Classes], self.percent))
+            / 1000
+            * self.surfaceArea,
+            pcr.nominal(self.TopoId),
+        )
+        self.trackQWB = pcr.areatotal(sum(self.trackQ), pcr.nominal(self.TopoId))
+        self.trackQ_WB = pcr.areatotal(sum(self.trackQ_t), pcr.nominal(self.TopoId))
+        if self.selectRout == "kinematic_wave_routing":
+            self.QstateWB = pcr.areatotal(
+                self.Qstate_new * self.timestepsecs, pcr.nominal(self.TopoId)
+            )
+        else:
+            self.QstateWB = pcr.areatotal(
+                self.Qstate * self.timestepsecs, pcr.nominal(self.TopoId)
+            )  # dit moet Qstate_new zijn ipv Qstate als je met de kin wave werkt en waterbalans wilt laten sluiten TODO aanpassen zodat het nog steeds werkt voor eerdere routing !!!
+            self.QeiastateWB = pcr.areatotal(
+                self.Qeiastate * self.timestepsecs, pcr.nominal(self.TopoId)
+            )  # dit moet Qstate_new zijn ipv Qstate als je met de kin wave werkt en waterbalans wilt laten sluiten TODO aanpassen zodat het nog steeds werkt voor eerdere routing !!!
+                        
+        self.Qstate_WB = pcr.areatotal(
+            self.Qstate_t * self.timestepsecs, pcr.nominal(self.TopoId)
+        )
+        self.Qeiastate_WB = pcr.areatotal(
+            self.Qeiastate_t * self.timestepsecs, pcr.nominal(self.TopoId)
+        )        
+        #        self.QstateWB = pcr.areatotal(sum(self.Qstate) * 0.0405, pcr.nominal(self.TopoId))
+        #        self.Qstate_WB = pcr.areatotal(sum(self.Qstate_t) * 0.0405, pcr.nominal(self.TopoId))
+        #        self.QstateWB = pcr.areatotal(self.Qstate, pcr.nominal(self.TopoId))
+        #        self.Qstate_WB = pcr.areatotal(self.Qstate_t, pcr.nominal(self.TopoId))
         #
-        ##    #fuxes and states in m3/h
-        #self.P = pcr.areatotal(
-        #    self.PrecipTotal / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
-        #)
-        ##self.Ei = pcr.areatotal(
-        ##    sum(np.multiply(self.Ei_, self.percent)) / 1000 * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
-        #self.Ea = pcr.areatotal(
-        #    sum(np.multiply(self.Ea_, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.Eu = pcr.areatotal(
-        #    sum(np.multiply(self.Eu_, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        ##self.Ew = pcr.areatotal(
-        ##    sum(np.multiply(self.Ew_, self.percent)) / 1000 * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
-        ##self.EwiCorr = pcr.areatotal(
-        ##                     
-        ##                                                                          
-        ##    sum(np.multiply(np.multiply(self.Ew_, self.lamdaS / self.lamda), self.percent))
-        ##      
-        ##           
-        ##    / 1000
-        ##    * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
-        #self.Qtot = self.QLagTot * self.timestepsecs
-        ##self.SiWB = pcr.areatotal(
-        ##    sum(np.multiply(self.Si, self.percent)) / 1000 * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
-        ##self.Si_WB = pcr.areatotal(
-        ##    sum(np.multiply(self.Si_t, self.percent)) / 1000 * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
-        #self.SuWB = pcr.areatotal(
-        #    sum(np.multiply(self.Su, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.Su_WB = pcr.areatotal(
-        #    sum(np.multiply(self.Su_t, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.SaWB = pcr.areatotal(
-        #    sum(np.multiply(self.Sa, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.Sa_WB = pcr.areatotal(
-        #    sum(np.multiply(self.Sa_t, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.SfWB = pcr.areatotal(
-        #    sum(np.multiply(self.Sf, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.Sf_WB = pcr.areatotal(
-        #    sum(np.multiply(self.Sf_t, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.SfaWB = pcr.areatotal(
-        #    sum(np.multiply(self.Sfa, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.Sfa_WB = pcr.areatotal(
-        #    sum(np.multiply(self.Sfa_t, self.percent)) / 1000 * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        ##self.SwWB = pcr.areatotal(
-        ##    sum(np.multiply(self.Sw, self.percent)) / 1000 * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
-        ##self.Sw_WB = pcr.areatotal(
-        ##    sum(np.multiply(self.Sw_t, self.percent)) / 1000 * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
-        #self.SsWB = pcr.areatotal(
-        #    self.Ss / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
-        #)
-        #self.Ss_WB = pcr.areatotal(
-        #    self.Ss_t / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
-        #)
-        #self.convQuWB = pcr.areatotal(
-        #    sum(np.multiply([sum(self.convQu[i]) for i in self.Classes], self.percent))
-        #    / 1000
-        #    * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.convQu_WB = pcr.areatotal(
-        #    sum(np.multiply([sum(self.convQu_t[i]) for i in self.Classes], self.percent))
-        #    / 1000
-        #    * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.convQaWB = pcr.areatotal(
-        #    sum(np.multiply([sum(self.convQa[i]) for i in self.Classes], self.percent))
-        #    / 1000
-        #    * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.convQa_WB = pcr.areatotal(
-        #    sum(np.multiply([sum(self.convQa_t[i]) for i in self.Classes], self.percent))
-        #    / 1000
-        #    * self.surfaceArea,
-        #    pcr.nominal(self.TopoId),
-        #)
-        #self.trackQWB = pcr.areatotal(sum(self.trackQ), pcr.nominal(self.TopoId))
-        #self.trackQ_WB = pcr.areatotal(sum(self.trackQ_t), pcr.nominal(self.TopoId))
-        #if self.selectRout == "kinematic_wave_routing":
-        #    self.QstateWB = pcr.areatotal(
-        #        self.Qstate_new * self.timestepsecs, pcr.nominal(self.TopoId)
-        #    )
-        #else:
-        #    self.QstateWB = pcr.areatotal(
-        #        self.Qstate * self.timestepsecs, pcr.nominal(self.TopoId)
-        #    )  # dit moet Qstate_new zijn ipv Qstate als je met de kin wave werkt en waterbalans wilt laten sluiten TODO aanpassen zodat het nog steeds werkt voor eerdere routing !!!
-        #    self.QeiastateWB = pcr.areatotal(
-        #        self.Qeiastate * self.timestepsecs, pcr.nominal(self.TopoId)
-        #    )  # dit moet Qstate_new zijn ipv Qstate als je met de kin wave werkt en waterbalans wilt laten sluiten TODO aanpassen zodat het nog steeds werkt voor eerdere routing !!!
-        #                
-        #self.Qstate_WB = pcr.areatotal(
-        #    self.Qstate_t * self.timestepsecs, pcr.nominal(self.TopoId)
-        #)
-        #self.Qeiastate_WB = pcr.areatotal(
-        #    self.Qeiastate_t * self.timestepsecs, pcr.nominal(self.TopoId)
-        #)        
-        ##        self.QstateWB = pcr.areatotal(sum(self.Qstate) * 0.0405, pcr.nominal(self.TopoId))
-        ##        self.Qstate_WB = pcr.areatotal(sum(self.Qstate_t) * 0.0405, pcr.nominal(self.TopoId))
-        ##        self.QstateWB = pcr.areatotal(self.Qstate, pcr.nominal(self.TopoId))
-        ##        self.Qstate_WB = pcr.areatotal(self.Qstate_t, pcr.nominal(self.TopoId))
-        ##
-        ## WBtot in m3/s   -- volgens mij moet dit m3/h zijn ??? TODO!
-        #self.WBtot = (
-        #    self.P
-        #    #- self.Ei
-        #    #+ self.EwiCorr    #adapted june 2020 as Ew is already counted in Ei so seems to be double counted here --- TO DO: check if this correction applies for all configurations and timesteps
-        #    #- self.Ew
-        #    - self.Ea
-        #    - self.Eu
-        #    - self.Qtot
-        #    #- self.SiWB
-        #    #+ self.Si_WB
-        #    - self.SuWB
-        #    + self.Su_WB
-        #    - self.SaWB
-        #    + self.Sa_WB
-        #    #- self.SwWB
-        #    #+ self.Sw_WB
-        #    - self.SfWB
-        #    + self.Sf_WB
-        #    - self.SfaWB
-        #    + self.Sfa_WB
-        #    - self.SsWB
-        #    + self.Ss_WB
-        #    - self.convQuWB
-        #    + self.convQu_WB
-        #    - self.convQaWB
-        #    + self.convQa_WB
-        #    - self.trackQWB
-        #    + self.trackQ_WB
-        #    - self.QstateWB
-        #    + self.Qstate_WB
-        #    - self.QeiastateWB
-        #    + self.Qeiastate_WB
-        #) / self.timestepsecs
-        ## SUMMED FLUXES ======================================================================================
-        #self.sumprecip = (
-        #    self.sumprecip + self.Precipitation
-        #)  # accumulated rainfall for water balance (m/h)
-        #self.sumevap = (
-        #    self.sumevap
-        #    #+ sum(np.multiply(self.Ei_, self.percent))
-        #    + sum(np.multiply(self.Eu_, self.percent))
-        #    + sum(np.multiply(self.Ea_, self.percent))
-        #    #+ sum(np.multiply(self.Ew_, self.percent))
-        #)  # accumulated evaporation for water balance (m/h)
-        #try:
-        #    self.sumpotevap = (
-        #        self.sumpotevap + self.PotEvaporation
-        #    )  # accumulated potential evaporation (m/h)
-        #except:
-        #    self.sumpotevap = self.EpHour
-        #self.sumrunoff = (
-        #    self.sumrunoff + self.Qtlag * 1000 * self.timestepsecs / self.surfaceArea
-        #)  # accumulated runoff for water balance (m/h)
-        #self.sumwb = self.sumwb + self.WB
+        # WBtot in m3/s   -- volgens mij moet dit m3/h zijn ??? TODO!
+        self.WBtot = (
+            self.P
+            #- self.Ei
+            #+ self.EwiCorr    #adapted june 2020 as Ew is already counted in Ei so seems to be double counted here --- TO DO: check if this correction applies for all configurations and timesteps
+            #- self.Ew
+            - self.Ea
+            - self.Eu
+            - self.Qtot
+            #- self.SiWB
+            #+ self.Si_WB
+            - self.SuWB
+            + self.Su_WB
+            - self.SaWB
+            + self.Sa_WB
+            #- self.SwWB
+            #+ self.Sw_WB
+            - self.SfWB
+            + self.Sf_WB
+            - self.SfaWB
+            + self.Sfa_WB
+            - self.SsWB
+            + self.Ss_WB
+            - self.convQuWB
+            + self.convQu_WB
+            - self.convQaWB
+            + self.convQa_WB
+            - self.trackQWB
+            + self.trackQ_WB
+            - self.QstateWB
+            + self.Qstate_WB
+            - self.QeiastateWB
+            + self.Qeiastate_WB
+        ) / self.timestepsecs
+        # SUMMED FLUXES ======================================================================================
+        self.sumprecip = (
+            self.sumprecip + self.Precipitation
+        )  # accumulated rainfall for water balance (m/h)
+        self.sumevap = (
+            self.sumevap
+            #+ sum(np.multiply(self.Ei_, self.percent))
+            + sum(np.multiply(self.Eu_, self.percent))
+            + sum(np.multiply(self.Ea_, self.percent))
+            #+ sum(np.multiply(self.Ew_, self.percent))
+        )  # accumulated evaporation for water balance (m/h)
+        try:
+            self.sumpotevap = (
+                self.sumpotevap + self.PotEvaporation
+            )  # accumulated potential evaporation (m/h)
+        except:
+            self.sumpotevap = self.EpHour
+        self.sumrunoff = (
+            self.sumrunoff + self.Qtlag * 1000 * self.timestepsecs / self.surfaceArea
+        )  # accumulated runoff for water balance (m/h)
+        self.sumwb = self.sumwb + self.WB
 
         #self.sumE = sum(np.multiply(self.Ei_, self.percent)) + sum(
         #    np.multiply(self.Eu_, self.percent)

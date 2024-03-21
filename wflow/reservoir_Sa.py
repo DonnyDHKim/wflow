@@ -76,14 +76,15 @@ def agriZone_no_reservoir(self, k):
     self.Ea_[k] = 0.0
     self.Sa[k] = 0.0
     self.Fa_[k] = pcr.max(self.Pe_[k], 0)
-    self.wbSa_[k] = (
-        self.Pe_[k]
-        - self.Ea_[k]
-        - self.Qa_[k]
-        - self.Fa_[k]
-        - self.Sa[k]
-        + self.Sa_t[k]
-    )
+    if hasattr(self, 'wbSa_[k]'):
+        self.wbSa_[k] = (
+            self.Pe_[k]
+            - self.Ea_[k]
+            - self.Qa_[k]
+            - self.Fa_[k]
+            - self.Sa[k]
+            + self.Sa_t[k]
+        ) #WBtest
 
 
 def agriZone_Jarvis(self, k):
@@ -1198,9 +1199,9 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
 
     self.samax2 = self.samax[k] * pcr.scalar(self.catchArea)
     
-    self.Qeia = self.Pe * self.EIA
+    #self.Qeia = self.Pe * self.EIA #after 03/20/2024, Pe is self.Precipitation - self.Qeia
     
-    self.Qaadd = pcr.max(self.Sa_t[k] + self.Pe - self.Qeia - self.samax2, 0)
+    self.Qaadd = pcr.max(self.Sa_t[k] + self.Pe - self.samax2, 0)
 
     delta_Pe_Qaadd = self.Pe - self.Qaadd # DKim: this operation is done way too many times
     
@@ -1209,7 +1210,7 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
     self.SuN = self.Su[k] / self.sumax[k]
 
     # Not sure if it is worth to keep this ET routine.
-    self.Ea1 = pcr.max((self.PotEvaporation - self.Ei), 0) * pcr.min(
+    self.Ea1 = pcr.max((self.PotEvaporation), 0) * pcr.min(
         self.Sa[k] / (self.samax2 * self.LP[k]), 1
     )
     self.Qa1 = (delta_Pe_Qaadd) * (1 - (1 - self.SaN) ** self.beta[k])
@@ -1261,11 +1262,12 @@ def agriZone_Ep_Sa_beta_EIA(self, k):
     self.Sa[k] = pcr.ifthenelse(self.Sa[k] < 0, 0, self.Sa[k])
     self.Sa_diff2 = pcr.ifthen(self.Sa[k] < 0, self.Sa[k])
 
-    self.wbSa_[k] = (
-        self.Pe - self.Ea - self.Qa - self.Qeia - self.Qaadd - self.Fa - self.Sa[k] + self.Sa_t[k]
-    )
+    if hasattr(self, 'wbSa_[k]'):
+        self.wbSa_[k] = (
+            self.Pe - self.Ea - self.Qa - self.Qaadd - self.Fa - self.Sa[k] + self.Sa_t[k]
+        ) #WB test
 
     self.Ea_[k] = self.Ea
     self.Qa_[k] = self.Qa + self.Qaadd
     self.Fa_[k] = self.Fa
-    self.Qeia_[k] = self.Qeia
+    #self.Qeia_[k] = self.Qeia

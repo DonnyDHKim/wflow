@@ -36,7 +36,8 @@ def fastRunoff_no_reservoir(self, k):
     self.Qfin_[k] = self.Qu * (1 - self.D)
     self.Qf_[k] = self.Qfin_[k]
     self.Sf_[k] = 0.0
-    self.wbSf_[k] = self.Qfin_[k] - self.Qf_[k] - self.Sf[k] + self.Sf_t[k]
+    if hasattr(self, 'wbSf_[k]'):
+        self.wbSf_[k] = self.Qfin_[k] - self.Qf_[k] - self.Sf[k] + self.Sf_t[k]
 
 
 def fastAgriRunoff_no_reservoir(self, k):
@@ -49,14 +50,15 @@ def fastAgriRunoff_no_reservoir(self, k):
 
     self.Qfa_[k] = self.Qa_[k]
     self.Sfa[k] = 0.0
-    self.wbSfa_[k] = (
-        self.Qfa_[k]
-        - self.Qfa_[k]
-        - self.Sfa[k]
-        + self.Sfa_t[k]
-        - sum(self.convQa[k])
-        + sum(self.convQa_t[k])
-    )
+    if hasattr(self, 'wbSfa_[k]'):
+        self.wbSfa_[k] = (
+            self.Qfa_[k]
+            - self.Qfa_[k]
+            - self.Sfa[k]
+            + self.Sfa_t[k]
+            - sum(self.convQa[k])
+            + sum(self.convQa_t[k])
+        )
 
 
 # @profile
@@ -122,15 +124,15 @@ def fastRunoff_lag2(self, k):
         self.Qf = self.ZeroMap
         self.Qfinput_[k] = self.ZeroMap
         self.Qfin_[k] = self.ZeroMap
-
-    self.wbSf_[k] = (
-        self.Qfin
-        - self.Qf
-        - self.Sf[k]
-        + self.Sf_t[k]
-        - sum(self.convQu[k])
-        + sum(self.convQu_t[k])
-    )
+    if hasattr(self, 'wbSf_[k]'):
+        self.wbSf_[k] = (
+            self.Qfin
+            - self.Qf
+            - self.Sf[k]
+            + self.Sf_t[k]
+            - sum(self.convQu[k])
+            + sum(self.convQu_t[k])
+        ) #WB test
 
     self.Qf_[k] = self.Qf
 
@@ -253,15 +255,15 @@ def fastRunoff_lag_agriDitch(self, k):
     #    else:
     #        self.Qfa = self.ZeroMap
     #        self.Qfain_[k] = self.ZeroMap
-
-    self.wbSfa_[k] = (
-        self.Qfain
-        - self.Qfa
-        - self.Sfa[k]
-        + self.Sfa_t[k]
-        - sum(self.convQa[k])
-        + sum(self.convQa_t[k])
-    )
+    if hasattr(self, 'wbSfa_[k]'):
+        self.wbSfa_[k] = (
+            self.Qfain
+            - self.Qfa
+            - self.Sfa[k]
+            + self.Sfa_t[k]
+            - sum(self.convQa[k])
+            + sum(self.convQa_t[k])
+        ) #WBtest
 
     self.Qfa_[k] = self.Qfa
 
@@ -476,3 +478,51 @@ def kinematic_wave_routing(self):
     self.Qstate_new = self.KinWaveVolume / self.timestepsecs
 
     Runoff = self.Qstate
+
+
+
+def routingQf_Qs_grid_EIA(self):
+    """
+    - Routing of both Qf and Qs
+    - based on a velocity map
+    """
+    self.Qtot = self.Qftotal + self.Qs_  # total local discharge in mm/hour
+    self.Qtotal = (
+        self.Qtot / 1000 * self.surfaceArea / self.timestepsecs
+    )  # total local discharge in m3/s
+    self.Qeia = (
+        self.Qeia / 1000 * self.surfaceArea / self.timestepsecs
+    )  # Qeia local discharge in m3/s
+    #self.QtotNoRout = pcr.accuflux(self.TopoLdd, self.Qtotal)
+    #self.QeiaNoRout = pcr.accuflux(self.TopoLdd, self.Qeia)
+
+    self.Qstate_t = self.Qstate
+    Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
+    self.Qeiastate_t = self.Qeiastate
+    Qeiatest = self.Qeiastate + self.Qeia # DKim: using this instead.
+    
+    self.Qrout = pcr.accutraveltimeflux(
+        self.TopoLdd, Qtest, self.velocity
+    )
+    self.Qrouteia = pcr.accutraveltimeflux(
+        self.TopoLdd, Qeiatest, self.velocity
+    )
+
+    self.Qstate = pcr.accutraveltimestate(
+        self.TopoLdd, Qtest, self.velocity
+    )
+    self.Qeiastate = pcr.accutraveltimestate(
+        self.TopoLdd, Qeiatest, self.velocity
+    )
+
+    self.Qtlag = self.Qrout
+    self.Qeialag = self.Qrouteia
+    self.QLagTot = self.Qrout + self.Qrouteia
+
+
+    # water balance of flux routing
+    if hasattr(self, 'WB_rout'):
+        self.dSdt = self.Qstate - self.Qstate_t
+        self.WB_rout = (
+            pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia - self.dSdt) - self.Qrout - self.Qrouteia
+        ) / pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia) #wbtest

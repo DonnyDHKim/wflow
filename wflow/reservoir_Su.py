@@ -170,16 +170,17 @@ def unsatZone_LP_beta(self, k):
     self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
     self.Su[k] = self.Su[k] + self.Cap
 
-    self.wbSu_[k] = (
-        self.Pe
-        - self.Eu
-        - self.Qu
-        - self.Quadd
-        - self.Perc
-        + self.Cap
-        - self.Su[k]
-        + self.Su_t[k]
-    )
+    if hasattr(self, 'wbSu_[k]'):
+        self.wbSu_[k] = (
+            self.Pe
+            - self.Eu
+            - self.Qu
+            - self.Quadd
+            - self.Perc
+            + self.Cap
+            - self.Su[k]
+            + self.Su_t[k]
+        ) #WB test
 
     self.Eu_[k] = self.Eu
     self.Qu_[k] = self.Qu + self.Quadd
@@ -2022,7 +2023,7 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
 
     # Originally, Eu1 considered frozen soil's impact.
     # No longer necessary when using urbZone_hourlyEp_Sa_beta_EIA. Removed: pcr.ifthenelse() & self.Ft_[k] 
-    self.Eu1 = pcr.max((self.PotEvaporation - self.Ei - self.Ea), 0) * pcr.min(self.Su[k] / (self.sumax[k] * self.LP[k]), 1)
+    self.Eu1 = pcr.max((self.PotEvaporation - self.Ea), 0) * pcr.min(self.Su[k] / (self.sumax[k] * self.LP[k]), 1)
 
     delta_Fa_Quadd = self.Fa - self.Quadd # DKim: this operation is done way too many times
 
@@ -2080,16 +2081,17 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
     self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
     self.Su[k] = self.Su[k] + self.Cap
 
-    self.wbSu_[k] = (
-        self.Fa
-        - self.Eu
-        - self.Qu
-        - self.Quadd
-        - self.Perc
-        + self.Cap
-        - self.Su[k]
-        + self.Su_t[k]
-    )
+    if hasattr(self, 'wbSu_[k]'):
+        self.wbSu_[k] = (
+            self.Fa
+            - self.Eu
+            - self.Qu
+            - self.Quadd
+            - self.Perc
+            + self.Cap
+            - self.Su[k]
+            + self.Su_t[k]
+        ) #WB test
 
     self.Eu_[k] = self.Eu
     self.Qu_[k] = self.Qu + self.Quadd

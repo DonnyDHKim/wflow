@@ -34,8 +34,8 @@ def interception_no_reservoir(self, k):
     Interception evaporation = 0.
     Storage in interception = 0.
     """
-    self.Pe = self.Precipitation
-    self.Ei = 0
+    #self.Pe = self.Precipitation
+    #self.Ei = 0
     #self.Pe_[k] = self.Pe
     #self.Ei_[k] = 0.0
     #self.Si_[k] = 0.0
