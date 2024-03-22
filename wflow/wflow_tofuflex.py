@@ -597,6 +597,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         EIA = configget(
             self.config, "model", "EIA", "staticmaps/EIA.map"
          ) #DKim
+        TIA = configget(
+            self.config, "model", "TIA", "staticmaps/TIA.map"
+         ) #DKim
         self.rst_laiTss = [
             configget(
                 self.config,
@@ -666,6 +669,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.BankfullDepth = pcr.ifthenelse(self.River, self.BankfullDepth, 0.0)
         self.RiverWidth = self.wf_readmap(os.path.join(self.Dir, wflow_riverwidth), 0.0)
         self.EIA =self.wf_readmap(os.path.join(self.Dir, EIA), 0.0)
+        self.TIA =self.wf_readmap(os.path.join(self.Dir, TIA), 0.0)
         self.percent = []
         for i in self.Classes:
             self.percent.append(pcr.readmap(os.path.join(self.Dir, wflow_percent[i])))
@@ -675,8 +679,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         #read D from .tbl file instead of from inifile 
 #        self.D = eval(str(configget(self.config, "model", "D", "[0]")))
         self.D = [self.readtblDefault2(self.Dir + "/" + self.intbl + "/D" + self.NamesClasses[i] + ".tbl",self.LandUse,subcatch,self.Soil,0.2) for i in self.Classes]
-        #DKim: adding self.D constraining that is originally done in reservoir_Sf.
-        self.D = [pcr.ifthenelse(self.D[i] >= 1, 0.95, self.D[i]) for i in self.Classes]
+
+        self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
+        self.D = [pcr.ifthenelse(self.D[i] >= 1, 0.95, self.D[i]) for i in self.Classes]        #DKim: adding self.D constraining that is originally done in reservoir_Sf.
         self.Tf = eval(str(configget(self.config, "model", "Tf", "[0]")))
         self.Tfa = eval(str(configget(self.config, "model", "Tfa", "[0]")))
 
@@ -701,6 +706,8 @@ class WflowModel(pcraster.framework.DynamicModel):
             )
             for i in self.Classes
         ]
+        self.sumax[0] = self.sumax[0] * (1-self.TIA) / (1-self.EIA)
+        self.sumax[2] = self.sumax[2] * (1-self.TIA) / (1-self.EIA)
         self.samax = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/samax" + self.NamesClasses[i] + ".tbl",
@@ -731,6 +738,8 @@ class WflowModel(pcraster.framework.DynamicModel):
             )
             for i in self.Classes
         ]
+        self.beta[1] = self.beta[1] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in hillslope
+        self.beta[2] = self.beta[2] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in plateau
         self.betaA = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/betaA" + self.NamesClasses[i] + ".tbl",
