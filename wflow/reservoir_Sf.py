@@ -488,10 +488,10 @@ def routingQf_Qs_grid_EIA(self):
     """
     self.Qtot = self.Qftotal + self.Qs_  # total local discharge in mm/hour
     self.Qtotal = (
-        self.Qtot / 1000 * self.surfaceArea / self.timestepsecs
+        self.Qtot / 1000 * self.surfaceArea * (1 - self.EIA) / self.timestepsecs # (1 - self.EIA) as we are converting "mm" from pervious
     )  # total local discharge in m3/s
     self.Qeia = (
-        self.Qeia / 1000 * self.surfaceArea / self.timestepsecs
+        self.Pe / 1000 * self.surfaceArea * self.EIA / self.timestepsecs
     )  # Qeia local discharge in m3/s
     #self.QtotNoRout = pcr.accuflux(self.TopoLdd, self.Qtotal)
     #self.QeiaNoRout = pcr.accuflux(self.TopoLdd, self.Qeia)

@@ -1356,9 +1356,10 @@ class WflowModel(pcraster.framework.DynamicModel):
         
         ##### DKim: tofuflex specific setting
         ##### Start. 
-        self.Qeia = self.PrecipTotal * self.EIA
+        #self.Qeia = self.PrecipTotal * self.EIA # Doesn't even need to be defined here.
         self.Ei = 0
-        self.Pe = self.PrecipTotal - self.Qeia
+        #self.Pe = self.PrecipTotal - self.Qeia # This is wrong. 
+        self.Pe = self.PrecipTotal
         #self.Qeia_[k] = self.Qeia
         ##### End.
 
