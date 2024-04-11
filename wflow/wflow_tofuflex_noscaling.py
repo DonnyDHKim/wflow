@@ -688,7 +688,7 @@ class WflowModel(pcraster.framework.DynamicModel):
 #        self.D = eval(str(configget(self.config, "model", "D", "[0]")))
         self.D = [self.readtblDefault2(self.Dir + "/" + self.intbl + "/D" + self.NamesClasses[i] + ".tbl",self.LandUse,subcatch,self.Soil,0.2) for i in self.Classes]
 
-        self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
+        #self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
         self.D = [pcr.ifthenelse(self.D[i] >= 1, 0.95, self.D[i]) for i in self.Classes]        #DKim: adding self.D constraining here to fasten up the runtime, which was originally done in reservoir_Sf.
         self.Tf = eval(str(configget(self.config, "model", "Tf", "[0]")))
         self.Tfa = eval(str(configget(self.config, "model", "Tfa", "[0]")))
@@ -748,7 +748,7 @@ class WflowModel(pcraster.framework.DynamicModel):
             for i in self.Classes
         ]
         #self.beta[0] = self.beta[0] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in wetland. Only for test purpose. Madly inaccurate.
-        self.beta[1] = self.beta[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: beta in hillslope
+        #self.beta[1] = self.beta[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: beta in hillslope
         #self.beta[2] = self.beta[2] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in plateau. Decided not to implement after series of testing.
         self.betaA = [
             self.readtblDefault2(
@@ -772,7 +772,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         ]
         self.Kf = [
             self.readtblDefault2(
-                self.Dir + "/" + self.intbl + "/Kf" + self.NamesClasses[i] + ".tbl",
+                self.Dir + "/" + self.intbl + "/Kf" + self.NamesClasses[i] + "_OG.tbl", #DKim: no scaling
                 self.LandUse,
                 subcatch,
                 self.Soil,
@@ -784,7 +784,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         #self.Kf[0] = self.Kf[0] * (1 + (self.TIA - self.EIA)/2 * 4.5)
         self.Kfa = [
             self.readtblDefault2(
-                self.Dir + "/" + self.intbl + "/Kfa" + self.NamesClasses[i] + ".tbl",
+                self.Dir + "/" + self.intbl + "/Kfa" + self.NamesClasses[i] + "_OG.tbl", #DKim: no scaling
                 self.LandUse,
                 subcatch,
                 self.Soil,

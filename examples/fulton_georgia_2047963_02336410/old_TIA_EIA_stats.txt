@@ -1,0 +1,32 @@
+TIA summary
+    Layer_1     
+ Min.   :0.000  
+ 1st Qu.:0.060  
+ Median :0.158  
+ Mean   :0.263  
+ 3rd Qu.:0.407  
+ Max.   :1.000  
+ NA's   :21606  
+
+
+EIA summary
+    Layer_1     
+ Min.   :0.000  
+ 1st Qu.:0.060  
+ Median :0.139  
+ Mean   :0.133  
+ 3rd Qu.:0.165  
+ Max.   :0.959  
+ NA's   :21606  
+
+
+Empirical Full, filtered
+ [1] 0.092 0.080 0.133 0.057 0.132 0.120 0.117 0.129 0.135 0.115 0.124
+
+
+Empirical Mean
+[1] 0.112
+
+
+Empirical Weighted Mean
+[1] 0.117

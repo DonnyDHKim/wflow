@@ -1,0 +1,41 @@
+HAND
+   focal_mean   
+ Min.   : 0.00  
+ 1st Qu.:11.73  
+ Median :22.39  
+ Mean   :24.67  
+ 3rd Qu.:35.64  
+ Max.   :78.82  
+ NA's   :65166  
+
+
+slope
+   focal_mean   
+ Min.   : 0.00  
+ 1st Qu.: 3.89  
+ Median : 6.27  
+ Mean   : 7.02  
+ 3rd Qu.: 9.32  
+ Max.   :38.42  
+ NA's   :65166  
+
+
+HRU Dist in 30m
+
+    0    10   100 
+0.105 0.593 0.302 
+
+HRU Dist in 90m MJ resample
+
+    0    10   100 
+0.111 0.597 0.292 
+
+wetland=0; hillslope=100; plateau=10;
+
+
+HAND Threshold for Wetland/Non-wetland
+5
+
+
+Slope Threshold for Sloped/Not-slope
+8.75

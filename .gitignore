@@ -74,6 +74,7 @@ ENV/
 *.tss
 # *.ini
 *.map
+*.xml
 runinfo
 intbl
 #/wflow/version.py
@@ -93,5 +94,11 @@ examples/wflow_maas_tofuflex/test1
 examples/wflow_maas_topoflex/test_dt
 examples/wflow_maas_tofuflex/test_dt
 examples/wflow_maas_tofuflex/inmaps_dt
+examples/wflow_maas_tofuflex/test*
+examples/fulton_georgia_2047963_02336410/inmaps2
+examples/fulton_georgia_2047963_02336410/obs
+examples/fulton_georgia_2047963_02336410/output
+examples/fulton_georgia_2047963_02336410/output_BM
+examples/fulton_georgia_2047963_02336410/temp
 wflow_og/
 *.xml

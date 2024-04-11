@@ -1,11 +1,11 @@
 #!/usr/bin/python
 
 """
-Definition of the wflow_tofuflex model.
+Definition of the wflow_topoflex model.
 ---------------------------------------
 
 Usage:
-wflow_tofuflex  -C case -R Runid -c inifile
+wflow_topoflex  -C case -R Runid -c inifile
 
     -C: set the name  of the case (directory) to run
     
@@ -22,7 +22,6 @@ import wflow.reservoir_Sw as reservoir_Sw
 import wflow.reservoir_Su as reservoir_Su
 import wflow.reservoir_Sf as reservoir_Sf
 import wflow.reservoir_Ss as reservoir_Ss
-import wflow.reservoir_Simp as reservoir_Simp #DKim
 import wflow.JarvisCoefficients as JarvisCoefficients
 
 
@@ -56,17 +55,17 @@ def usage(*args):
 
 class WflowModel(pcraster.framework.DynamicModel):
     """
-  The user defined model class. This is your work!
-  """
+    The user defined model class. This is your work!
+    """
 
     def __init__(self, cloneMap, Dir, RunDir, configfile):
         """
-      *Required*
-      
-      The init function **must** contain what is shown below. Other functionality
-      may be added by you if needed.
-      
-      """
+        *Required*
+
+        The init function **must** contain what is shown below. Other functionality
+        may be added by you if needed.
+
+        """
         pcraster.framework.DynamicModel.__init__(self)
         pcr.setclone(os.path.join(Dir, "staticmaps", cloneMap))
         self.runId = RunDir
@@ -76,22 +75,22 @@ class WflowModel(pcraster.framework.DynamicModel):
 
     def parameters(self):
         """
-      List all the parameters (both static and forcing here). Use the wf_updateparameters()
-      function to update them in the initial section (static) and the dynamic section for
-      dynamic parameters and forcing date.
+        List all the parameters (both static and forcing here). Use the wf_updateparameters()
+        function to update them in the initial section (static) and the dynamic section for
+        dynamic parameters and forcing date.
 
-      Possible parameter types are:
+        Possible parameter types are:
 
-      + staticmap: Read at startup from map
-      + statictbl: Read at startup from tbl, fallback to map (need Landuse, Soil and TopoId (subcatch) maps!
-      + timeseries: read map for each timestep
-      + monthlyclim: read a map corresponding to the current month (12 maps in total)
-      + dailyclim: read a map corresponding to the current day of the year
-      + hourlyclim: read a map corresponding to the current hour of the day (24 in total)
+        + staticmap: Read at startup from map
+        + statictbl: Read at startup from tbl, fallback to map (need Landuse, Soil and TopoId (subcatch) maps!
+        + timeseries: read map for each timestep
+        + monthlyclim: read a map corresponding to the current month (12 maps in total)
+        + dailyclim: read a map corresponding to the current day of the year
+        + hourlyclim: read a map corresponding to the current hour of the day (24 in total)
 
 
-      :return: List of modelparameters
-      """
+        :return: List of modelparameters
+        """
         modelparameters = []
 
         # Static model parameters
@@ -112,49 +111,43 @@ class WflowModel(pcraster.framework.DynamicModel):
         """
         Updates the kinematic wave reservoir
         """
-        #self.WaterLevel = (self.Alpha * pow(self.Qstate, self.Beta)) / self.Bw
-        ## wetted perimeter (m)
-        #P = self.Bw + (2 * self.WaterLevel)
-        ## Alpha
-        #self.Alpha = self.AlpTerm * pow(P, self.AlpPow)
-        #self.OldKinWaveVolume = self.KinWaveVolume
-        #self.KinWaveVolume = self.WaterLevel * self.Bw * self.DCL
+        self.WaterLevel = (self.Alpha * pow(self.Qstate, self.Beta)) / self.Bw
+        self.OldKinWaveVolume = self.KinWaveVolume
+        self.KinWaveVolume = self.WaterLevel * self.Bw * self.DCL
 
     def stateVariables(self):
         """
-      *Required*
-      
-      Returns a list of state variables that are essential to the model. 
-      This list is essential for the resume and suspend functions to work.
-      
-      This function is specific for each model and **must** be present. This is
-      where you specify the state variables of you model. If your model is stateless
-      this function must return and empty array (states = [])
-      
-      In the simple example here the TSoil variable is a state 
-      for the model.
-      
-      :var TSoil: Temperature of the soil [oC]
-      """
-        #states = ["Si", "Su", "Sf", "Ss", "Sw", "Sa", "Sfa", "Qstate", "WaterLevel"]
-        states = ["Su", "Sf", "Ss", "Sw", "Sa", "Sfa", "Sfimp", "Qstate", "WaterLevel"] #DKim: For tofu
+        *Required*
 
+        Returns a list of state variables that are essential to the model.
+        This list is essential for the resume and suspend functions to work.
+
+        This function is specific for each model and **must** be present. This is
+        where you specify the state variables of you model. If your model is stateless
+        this function must return and empty array (states = [])
+
+        In the simple example here the TSoil variable is a state
+        for the model.
+
+        :var TSoil: Temperature of the soil [oC]
+        """
+        states = ["Si", "Su", "Sf", "Ss", "Sw", "Sa", "Sfa", "Qstate", "WaterLevel"]
 
         return states
 
     def supplyCurrentTime(self):
         """
-      *Optional*
-      
-      Supplies the current time in seconds after the start of the run
-      This function is optional. If it is not set the framework assumes
-      the model runs with daily timesteps.
-      
-      Output:
-      
-          - time in seconds since the start of the model run
-          
-      """
+        *Optional*
+
+        Supplies the current time in seconds after the start of the run
+        This function is optional. If it is not set the framework assumes
+        the model runs with daily timesteps.
+
+        Output:
+
+            - time in seconds since the start of the model run
+
+        """
 
         return self.currentTimeStep() * int(
             configget(self.config, "model", "timestepsecs", "86400")
@@ -164,17 +157,17 @@ class WflowModel(pcraster.framework.DynamicModel):
         """
         First check if a prepared  maps of the same name is present
         in the staticmaps directory. next try to
-        read a tbl file to match a landuse, catchment and soil map. Returns 
+        read a tbl file to match a landuse, catchment and soil map. Returns
         the default value if the tbl file is not found.
-    
+
         Input:
             -  pathtotbl: full path to table file
             -  landuse: landuse map
             -  subcatch: subcatchment map
             -  soil: soil map
             -  default: default value
-    
-        Output: 
+
+        Output:
             - map constructed from tbl file or map with default value
         """
 
@@ -206,14 +199,14 @@ class WflowModel(pcraster.framework.DynamicModel):
 
     def suspend(self):
         """
-      *Required*
-      
-      Suspends the model to disk. All variables needed to restart the model
-      are saved to disk as pcraster maps. Use resume() to re-read them
-      
-      This function is required. 
-      
-    """
+        *Required*
+
+        Suspends the model to disk. All variables needed to restart the model
+        are saved to disk as pcraster maps. Use resume() to re-read them
+
+        This function is required.
+
+        """
 
         self.logger.info("Saving initial conditions...")
         # self.wf_suspend(os.path.join(self.SaveDir,"outstatemm"))
@@ -270,9 +263,7 @@ class WflowModel(pcraster.framework.DynamicModel):
                 if self.selectSw[i]
             ]
             pcr.report(self.Ss, self.Dir + "/outstate/Ss.map")
-            pcr.report(self.Sfimp, self.Dir + "/outstate/Sfimp.map") #DKim.
             pcr.report(self.Qstate, self.Dir + "/outstate/Qstate.map")
-            pcr.report(self.Qeiastate, self.Dir + "/outstate/Qeiastate.map") #DKim
             pcr.report(self.WaterLevel, self.Dir + "/outstate/WaterLevel.map")
 
         #: It is advised to use the wf_suspend() function
@@ -327,9 +318,7 @@ class WflowModel(pcraster.framework.DynamicModel):
             if self.selectSw[i]
         ]
         pcr.report(self.Ss, self.SaveDir + "/outstate/Ss.map")
-        pcr.report(self.Sfimp, self.SaveDir + "/outstate/Sfimp.map") #DKim.
         pcr.report(self.Qstate, self.SaveDir + "/outstate/Qstate.map")
-        pcr.report(self.Qeiastate, self.SaveDir + "/outstate/Qeiastate.map")#DKim.
         pcr.report(self.WaterLevel, self.SaveDir + "/outstate/WaterLevel.map")
 
         [
@@ -345,23 +334,23 @@ class WflowModel(pcraster.framework.DynamicModel):
         pcr.report(self.sumprecip, self.SaveDir + "/outsum/sumprecip.map")
         pcr.report(self.sumevap, self.SaveDir + "/outsum/sumevap.map")
         pcr.report(self.sumpotevap, self.SaveDir + "/outsum/sumpotevap.map")
-        #pcr.report(self.sumtemp, self.SaveDir + "/outsum/sumtemp.map")
+        pcr.report(self.sumtemp, self.SaveDir + "/outsum/sumtemp.map")
         pcr.report(self.sumrunoff, self.SaveDir + "/outsum/sumrunoff.map")
-        #pcr.report(self.sumwb, self.SaveDir + "/outsum/sumwb.map")
+        pcr.report(self.sumwb, self.SaveDir + "/outsum/sumwb.map")
 
     def initial(self):
 
         """
-    *Required*
-    
-    Initial part of the model, executed only once. It reads all static model
-    information (parameters) and sets-up the variables used in modelling.
-    
-    This function is required. The contents is free. However, in order to
-    easily connect to other models it is advised to adhere to the directory
-    structure used in the other models.
-    
-    """
+        *Required*
+
+        Initial part of the model, executed only once. It reads all static model
+        information (parameters) and sets-up the variables used in modelling.
+
+        This function is required. The contents is free. However, in order to
+        easily connect to other models it is advised to adhere to the directory
+        structure used in the other models.
+
+        """
         #: pcraster option to calculate with units or cells. Not really an issue
         #: in this model but always good to keep in mind.
         pcr.setglobaloption("unittrue")
@@ -448,7 +437,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         )  # highest index of all used meteo stations
         self.IMPIRURFR_L = int(
             configget(self.config, "model", "L_IMPIRURFR", "0")
-        )  # IMPIRURFR added by DKim.
+        )  # IMPIRURFR added by DKim. But is it necessary?
         #self.IRURFR_L = int(
         #    configget(self.config, "model", "L_IRURFR", "0")
         #)  # combination of reservoirs that are distributed (1: all these reservoirs are distributed)
@@ -516,9 +505,6 @@ class WflowModel(pcraster.framework.DynamicModel):
             .replace("]", "")
             .replace("None", "")
             .split(",")
-        )
-        self.selectSimp = configget(
-            self.config, "model", "selectSimp", "impervious_lag"
         )
         self.selectSs = configget(
             self.config, "model", "selectSs", "groundWaterCombined3"
@@ -602,12 +588,6 @@ class WflowModel(pcraster.framework.DynamicModel):
             "wflow_bankfulldepth",
             "staticmaps/wflow_bankfulldepth.map",
         )
-        EIA = configget(
-            self.config, "model", "EIA", "staticmaps/EIA.map"
-         ) #DKim
-        TIA = configget(
-            self.config, "model", "TIA", "staticmaps/TIA.map"
-         ) #DKim
         self.rst_laiTss = [
             configget(
                 self.config,
@@ -650,7 +630,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.totalArea = pcr.areatotal(self.surfaceArea, pcr.nominal(self.TopoId))
         self.percentArea = self.surfaceArea / self.totalArea
         # Dkim: testing to see if self.surfaceArea can be just integer
-        self.surfaceArea = int(np.nanmean(pcr.pcr2numpy(self.surfaceArea, mv=np.nan)))                                                                                                                       
+        self.surfaceArea = int(np.nanmean(pcr.pcr2numpy(self.surfaceArea, mv=np.nan)))
         self.Transit = pcr.scalar(
             pcr.readmap(os.path.join(self.Dir, wflow_transit))
         )  #: Map with surface area per cell
@@ -676,23 +656,26 @@ class WflowModel(pcraster.framework.DynamicModel):
         )
         self.BankfullDepth = pcr.ifthenelse(self.River, self.BankfullDepth, 0.0)
         self.RiverWidth = self.wf_readmap(os.path.join(self.Dir, wflow_riverwidth), 0.0)
-        self.EIA =self.wf_readmap(os.path.join(self.Dir, EIA), 0.0)
-        self.TIA =self.wf_readmap(os.path.join(self.Dir, TIA), 0.0)
         self.percent = []
         for i in self.Classes:
             self.percent.append(pcr.readmap(os.path.join(self.Dir, wflow_percent[i])))
 
         self.wf_updateparameters()
         # MODEL PARAMETERS - VALUES PER CLASS
-        #read D from .tbl file instead of from inifile 
-#        self.D = eval(str(configget(self.config, "model", "D", "[0]")))
-        self.D = [self.readtblDefault2(self.Dir + "/" + self.intbl + "/D" + self.NamesClasses[i] + ".tbl",self.LandUse,subcatch,self.Soil,0.2) for i in self.Classes]
-
-        self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
-        self.D = [pcr.ifthenelse(self.D[i] >= 1, 0.95, self.D[i]) for i in self.Classes]        #DKim: adding self.D constraining here to fasten up the runtime, which was originally done in reservoir_Sf.
+        # read D from .tbl file instead of from inifile
+        #        self.D = eval(str(configget(self.config, "model", "D", "[0]")))
+        self.D = [
+            self.readtblDefault2(
+                self.Dir + "/" + self.intbl + "/D" + self.NamesClasses[i] + ".tbl",
+                self.LandUse,
+                subcatch,
+                self.Soil,
+                0.2,
+            )
+            for i in self.Classes
+        ]
         self.Tf = eval(str(configget(self.config, "model", "Tf", "[0]")))
         self.Tfa = eval(str(configget(self.config, "model", "Tfa", "[0]")))
-        self.Tfimp  = eval(str(configget(self.config, "model", "Tfimp", "[1]"))) #DKim
 
         # MODEL PARAMETERS - BASED ON TABLES
         self.imax = [
@@ -715,8 +698,6 @@ class WflowModel(pcraster.framework.DynamicModel):
             )
             for i in self.Classes
         ]
-        self.sumax[0] = self.sumax[0] * (1-pcr.ifthenelse(self.TIA<1, self.TIA, 0.997)) / (1-self.EIA)
-        self.sumax[2] = self.sumax[2] * (1-pcr.ifthenelse(self.TIA<1, self.TIA, 0.997)) / (1-self.EIA)
         self.samax = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/samax" + self.NamesClasses[i] + ".tbl",
@@ -747,9 +728,6 @@ class WflowModel(pcraster.framework.DynamicModel):
             )
             for i in self.Classes
         ]
-        #self.beta[0] = self.beta[0] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in wetland. Only for test purpose. Madly inaccurate.
-        self.beta[1] = self.beta[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: beta in hillslope
-        #self.beta[2] = self.beta[2] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in plateau. Decided not to implement after series of testing.
         self.betaA = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/betaA" + self.NamesClasses[i] + ".tbl",
@@ -772,7 +750,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         ]
         self.Kf = [
             self.readtblDefault2(
-                self.Dir + "/" + self.intbl + "/Kf" + self.NamesClasses[i] + ".tbl",
+                self.Dir + "/" + self.intbl + "/Kf" + self.NamesClasses[i] + "_OG.tbl",
                 self.LandUse,
                 subcatch,
                 self.Soil,
@@ -780,11 +758,9 @@ class WflowModel(pcraster.framework.DynamicModel):
             )
             for i in self.Classes
         ]
-        #self.Kf[1] = self.Kf[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: Kf in hillslope (distributed). Just for test purpose.
-        #self.Kf[0] = self.Kf[0] * (1 + (self.TIA - self.EIA)/2 * 4.5)
         self.Kfa = [
             self.readtblDefault2(
-                self.Dir + "/" + self.intbl + "/Kfa" + self.NamesClasses[i] + ".tbl",
+                self.Dir + "/" + self.intbl + "/Kfa" + self.NamesClasses[i] + "_OG.tbl",
                 self.LandUse,
                 subcatch,
                 self.Soil,
@@ -792,14 +768,6 @@ class WflowModel(pcraster.framework.DynamicModel):
             )
             for i in self.Classes
         ]
-        self.Kfimp = self.readtblDefault2(
-                self.Dir + "/" + self.intbl + "/Kfimp.tbl",
-                self.LandUse,
-                subcatch,
-                self.Soil,
-                0.05,
-            )#DKim
-        self.Kfimp = self.Kfimp * (1 + (self.EIA) * 3) #testing with distributed layout first: self.Kimp * ((1-self.EIA) + (self.EIA *4.5))
         self.perc = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/perc" + self.NamesClasses[i] + ".tbl",
@@ -986,8 +954,6 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.convQa = [
             [0 * pcr.scalar(self.catchArea)] * self.Tfa[i] for i in self.Classes
         ]
-        #self.convQimp = (0 * self.catchArea) * self.Tfimp        #DKim. 
-        self.convQimp = [0.0 *  pcr.scalar(self.catchArea)] * self.Tfimp[0]  #DKim. 
 
         if self.scalarInput:
             self.gaugesMap = pcr.nominal(
@@ -1023,7 +989,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    * 0.001
         #    * self.reallength
         #)
-        #self.QMMConvUp = pcr.cover(self.timestepsecs * 0.001) / temp #DKim: Unnecessary
+        #self.QMMConvUp = pcr.cover(self.timestepsecs * 0.001) / temp
 
         self.wf_multparameters()
 
@@ -1043,12 +1009,12 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    * self.N ** (0.375)
         #)
         ## Use supplied riverwidth if possible, else calulate
-        #self.RiverWidth = pcr.ifthenelse(self.RiverWidth <= 0.0, W, self.RiverWidth) #DKim: Unnecessary
+        #self.RiverWidth = pcr.ifthenelse(self.RiverWidth <= 0.0, W, self.RiverWidth)
 
         # For in memory override:
         self.P = self.ZeroMap
         self.PET = self.ZeroMap
-        #self.TEMP = self.ZeroMap #DKim: Unnecessary
+        #self.TEMP = self.ZeroMap
 
         self.logger.info("Linking parameters to landuse, catchment and soil...")
 
@@ -1074,10 +1040,10 @@ class WflowModel(pcraster.framework.DynamicModel):
         # pcr.report(catchmentcells,"kk.map")
         #self.QMMConv = self.timestepsecs / (
         #    self.reallength * self.reallength * 0.001
-        #)  # m3/s --> mm #DKim: Unnecessary
+        #)  # m3/s --> mm
         #self.ToCubic = (
         #    self.reallength * self.reallength * 0.001
-        #) / self.timestepsecs  # m3/s #DKim: Unnecessary
+        #) / self.timestepsecs  # m3/s
 
         self.sumprecip = self.ZeroMap  # accumulated rainfall for water balance
         self.sumevap = self.ZeroMap  # accumulated evaporation for water balance
@@ -1091,7 +1057,7 @@ class WflowModel(pcraster.framework.DynamicModel):
 
         #self.KinWaveVolume = self.ZeroMap
         #self.OldKinWaveVolume = self.ZeroMap
-        #self.Qvolume = self.ZeroMap #DKim: Unnecessary
+        #self.Qvolume = self.ZeroMap
 
         # Define timeseries outputs There seems to be a bug and the .tss files are
         # saved in the current dir...
@@ -1099,9 +1065,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         ## Set DCL to riverlength if that is longer that the basic length calculated from grid
         #drainlength = detdrainlength(self.TopoLdd, self.xl, self.yl)
         #
-#       # self.DCL = pcr.max(drainlength, self.RiverLength)  # m
+        ##        self.DCL = pcr.max(drainlength, self.RiverLength)  # m
         ## Multiply with Factor (taken from upscaling operation, defaults to 1.0 if no map is supplied
-#       # self.DCL = self.DCL * pcr.max(1.0, self.RiverLengthFac)
+        ##        self.DCL = self.DCL * pcr.max(1.0, self.RiverLengthFac)
         #self.DCL = self.RiverLength
         #
         ## water depth (m)
@@ -1110,32 +1076,46 @@ class WflowModel(pcraster.framework.DynamicModel):
         ## However, in the main river we have real flow so set the width to the
         ## width of the river
         #
+        #                                                                                      
+        #                                                             
+        # 
+        #                                                        
+        #                                                                                              
+        #                                                         
+        #                            
+        # 
+        #                  
+        #                                                           
+        #                                                        
+        #                                                                       
+        #                     
+        # 
         #self.Bw = pcr.ifthenelse(self.River, self.RiverWidth, self.Bw)
         #
         ## term for Alpha
         #self.AlpTerm = pow((self.N / (pcr.sqrt(self.Slope))), self.Beta)
         ## power for Alpha
         #self.AlpPow = (2.0 / 3.0) * self.Beta
-        ## initial approximation for Alpha
-        #self.Alpha = self.AlpTerm * pow(self.Bw + self.BankfullDepth, self.AlpPow)
-                                                                          
-
+        #
+        #self.Alpha = self.AlpTerm * pow(self.Bw + self.BankfullDepth, self.AlpPow)                                                                  
+        
+        
         ## calculate catchmentsize
         #self.upsize = pcr.catchmenttotal(self.xl * self.yl, self.TopoLdd)
-        #self.csize = pcr.areamaximum(self.upsize, self.TopoId) #DKim: Unnecessary
+        #self.csize = pcr.areamaximum(self.upsize, self.TopoId)
 
         self.SaveDir = os.path.join(self.Dir, self.runId)
         self.logger.info("Starting Dynamic run...")
 
     def resume(self):
         """
-    *Required*
+        *Required*
 
-    This function is required. Read initial state maps (they are output of a 
-    previous call to suspend()). The implementation shown here is the most basic
-    setup needed.
-    
-    """
+        This function is required. Read initial state maps (they are output of a
+        previous call to suspend()). The implementation shown here is the most basic
+        setup needed.
+
+        """
         if self.reinit == 1:
             # self.logger.info("Setting initial conditions to default (zero!)")
             self.logger.info(
@@ -1147,13 +1127,9 @@ class WflowModel(pcraster.framework.DynamicModel):
             self.Sa = [self.ZeroMap] * len(self.Classes)
             self.Sf = [self.ZeroMap] * len(self.Classes)
             self.Sfa = [self.ZeroMap] * len(self.Classes)
-            self.Sfimp = self.ZeroMap #DKim
             self.Ss = self.ZeroMap  # for combined gw reservoir
             self.Qstate = self.catchArea * 0  # for combined gw reservoir
             self.Qstate_t = self.catchArea * 0
-            self.Qeiastate = self.catchArea * 0
-            self.Qeiastate_t = self.catchArea * 0
-
 
             self.WaterLevel = (
                 self.catchArea * 0
@@ -1259,20 +1235,15 @@ class WflowModel(pcraster.framework.DynamicModel):
                     )
                 else:
                     self.Sfa.append(self.ZeroMap)
-            self.Sfimp = pcr.readmap(os.path.join(self.Dir, "instate", "Sfimp.map")) #DKim
             self.Ss = pcr.readmap(os.path.join(self.Dir, "instate", "Ss.map"))
             self.Qstate = pcr.readmap(os.path.join(self.Dir, "instate", "Qstate.map"))
-            self.Qeiastate = pcr.readmap(os.path.join(self.Dir, "instate", "Qeiastate.map"))
             self.WaterLevel = pcr.readmap(
                 os.path.join(self.Dir, "instate", "WaterLevel.map")
             )
 
-        #P = self.Bw + (2.0 * self.WaterLevel)
-        #self.Alpha = self.AlpTerm * pow(P, self.AlpPow)
-
         #self.OldSurfaceRunoff = self.Qstate
 
-        #self.SurfaceRunoffMM = self.Qstate * self.QMMConv #DKim: Unnecessary
+        #self.SurfaceRunoffMM = self.Qstate * self.QMMConv
         # Determine initial kinematic wave volume
         #self.KinWaveVolume = self.WaterLevel * self.Bw * self.DCL
         #self.OldKinWaveVolume = self.KinWaveVolume
@@ -1283,7 +1254,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         ##self.wbSw_ = [self.ZeroMap] * len(self.Classes)
         #self.wbSf_ = [self.ZeroMap] * len(self.Classes)
         #self.wbSfa_ = [self.ZeroMap] * len(self.Classes)
-        #self.wbSfimp_ = self.ZeroMap
+        #                             
         #self.wbSfrout = self.ZeroMap
         #self.wbSs = self.ZeroMap
 
@@ -1296,13 +1267,11 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.Qu_ = [self.ZeroMap] * len(self.Classes)
         #self.Qw_ = [self.ZeroMap] * len(self.Classes)
         self.Qa_ = [self.ZeroMap] * len(self.Classes)
-        #self.Qeia_ = [self.ZeroMap] * len(self.Classes) # added by DKim
         self.Cap_ = [self.ZeroMap] * len(self.Classes)
         self.Perc_ = [self.ZeroMap] * len(self.Classes)
         self.Fa_ = [self.ZeroMap] * len(self.Classes)
         self.Qf_ = [self.ZeroMap] * len(self.Classes)
         self.Qfa_ = [self.ZeroMap] * len(self.Classes)
-        self.Qimp_ = [self.ZeroMap] * len(self.Classes) # added by DKim
         self.Qs_ = self.ZeroMap  # for combined gw reservoir
         self.Qflag_ = [self.ZeroMap] * len(self.Classes)
         self.Qfcub_ = [self.ZeroMap] * len(self.Classes)
@@ -1319,17 +1288,17 @@ class WflowModel(pcraster.framework.DynamicModel):
 
     def default_summarymaps(self):
         """
-      *Optional*
+        *Optional*
 
-      Return a default list of variables to report as summary maps in the outsum dir.
-      The ini file has more options, including average and sum
-      """
+        Return a default list of variables to report as summary maps in the outsum dir.
+        The ini file has more options, including average and sum
+        """
         return ["self.Altitude"]
 
     def dynamic(self):
         """
         *Required*
-        
+
         This is where all the time dependent functions are executed. Time dependent
         output should also be saved here.
         :type self: object
@@ -1349,14 +1318,12 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.Sa_t = copylist(self.Sa)
         self.Sf_t = copylist(self.Sf)
         self.Sfa_t = copylist(self.Sfa)
-        self.Sfimp_t = self.Sfimp #DKim
         self.Ss_t = self.Ss
         self.trackQ_t = copylist(self.trackQ)  # copylist(self.trackQ)
         self.convQu_t = [
             copylist(self.convQu[i]) for i in self.Classes
         ]  # copylist(self.convQu)
         self.convQa_t = [copylist(self.convQa[i]) for i in self.Classes]
-        self.convQimp_t = self.convQimp #DKim
 
         #if self.IRURFR_L:
         #    self.PotEvaporation = pcr.areatotal(
@@ -1365,7 +1332,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    self.Precipitation = pcr.areatotal(
         #        self.Precipitation * self.percentArea, pcr.nominal(self.TopoId)
         #    )
-        #    if self.selectSW[0]: #if condition added by Dkim.
+        #    if self.selectSW[0]: #if condition added by Dkim to allow NOT using temperature for tofuflex
         #        self.Temperature = pcr.areaaverage(
         #            self.Temperature * self.percentArea, pcr.nominal(self.TopoId)
         #            )
@@ -1374,24 +1341,14 @@ class WflowModel(pcraster.framework.DynamicModel):
             self.Precipitation
         )  # NB: self.PrecipTotal is the precipitation as in the inmaps and self.Precipitation is in fact self.Rainfall !!!!
         #if self.selectSw[0]: #DKim: if self.selectSw[0] is not None -> if self.selectSw[0]:
-        #    print(self.selectSw[0])
         #    self.Precipitation = pcr.ifthenelse(
         #        self.Temperature >= self.Tt[0], self.PrecipTotal, 0
         #    )
         #    self.PrecipitationSnow = pcr.ifthenelse(
         #        self.Temperature < self.Tt[0], self.PrecipTotal, 0
         #    )
-        
-        ##### DKim: tofuflex specific setting
-        ##### Start. 
-        #self.Qeia = self.PrecipTotal * self.EIA # Doesn't even need to be defined here.
-        self.Ei = 0
-        #self.Pe = self.PrecipTotal - self.Qeia # This is wrong. 
-        self.Pe = self.PrecipTotal
-        #self.Qeia_[k] = self.Qeia
-        ##### End.
 
-        #if hasattr(self, 'EpDay'):
+        #if hasattr(self, 'EpDay'): #DKim. if condition added to allow not using EpDay.
         #    self.EpDay2 = self.EpDay * self.ECORR
         #    self.EpDaySnow2 = self.EpDaySnow * self.ECORR
 
@@ -1443,7 +1400,9 @@ class WflowModel(pcraster.framework.DynamicModel):
             eval(eval_str)
 
         # TOTAL RUNOFF =============================================================================================
-        self.Qftotal = sum([x * y for x, y in zip(self.Qf_, self.percent)]) + sum([x * y for x, y in zip(self.Qfa_, self.percent)]) #Qeia bypasses Sf lag-function(s) and directly go into routing.
+        self.Qftotal = sum([x * y for x, y in zip(self.Qf_, self.percent)]) + sum(
+            [x * y for x, y in zip(self.Qfa_, self.percent)]
+        )
 
         # SLOW RUNOFF RESERVOIR ===========================================================================
         if self.selectSs:
@@ -1451,15 +1410,6 @@ class WflowModel(pcraster.framework.DynamicModel):
         else:
             eval_str = "reservoir_Ss.groundWater_no_reservoir(self)"
         eval(eval_str)
-
-
-        # DKim: Impervious fast runoff reservoir=======================================
-        if self.selectSimp:
-            eval_str = "reservoir_Simp.{:s}(self)".format(self.selectSimp)
-        else:
-            eval_str = "reservoir_Simp.impervious_no_lag(self)"
-        eval(eval_str)
-
 
         # ROUTING
         if self.selectRout:
@@ -1494,13 +1444,13 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    - sum(np.multiply(self.convQuWB, self.percent))
         #    + sum(np.multiply(self.convQuWB_t, self.percent))
         #)
-        #
+
         ##    #fuxes and states in m3/h
         #self.P = pcr.areatotal(
         #    self.PrecipTotal / 1000 * self.surfaceArea, pcr.nominal(self.TopoId)
         #)
         ##self.Ei = pcr.areatotal(
-        ##    sum(np.multiply(self.Ei_, self.percent)) / 1000 * self.surfaceArea,
+        ##    sum(np.multiply(self.Ei_, self.percent)) / 1000 * self.surfaceArea,                                                                      
         ##    pcr.nominal(self.TopoId),
         ##)
         #self.Ea = pcr.areatotal(
@@ -1515,16 +1465,16 @@ class WflowModel(pcraster.framework.DynamicModel):
         ##    sum(np.multiply(self.Ew_, self.percent)) / 1000 * self.surfaceArea,
         ##    pcr.nominal(self.TopoId),
         ##)
-        ##self.EwiCorr = pcr.areatotal(
-        ##                     
-        ##                                                                          
-        ##    sum(np.multiply(np.multiply(self.Ew_, self.lamdaS / self.lamda), self.percent))
-        ##      
-        ##           
-        ##    / 1000
-        ##    * self.surfaceArea,
-        ##    pcr.nominal(self.TopoId),
-        ##)
+        #self.EwiCorr = pcr.areatotal(
+        #    sum(
+        #        np.multiply(
+        #            np.multiply(self.Ew_, self.lamdaS / self.lamda), self.percent
+        #        )
+        #    )
+        #    / 1000
+        #    * self.surfaceArea,
+        #    pcr.nominal(self.TopoId),
+        #)
         #self.Qtot = self.QLagTot * self.timestepsecs
         ##self.SiWB = pcr.areatotal(
         ##    sum(np.multiply(self.Si, self.percent)) / 1000 * self.surfaceArea,
@@ -1587,7 +1537,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    pcr.nominal(self.TopoId),
         #)
         #self.convQu_WB = pcr.areatotal(
-        #    sum(np.multiply([sum(self.convQu_t[i]) for i in self.Classes], self.percent))
+        #    sum(
+        #        np.multiply([sum(self.convQu_t[i]) for i in self.Classes], self.percent)
+        #    )
         #    / 1000
         #    * self.surfaceArea,
         #    pcr.nominal(self.TopoId),
@@ -1599,7 +1551,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    pcr.nominal(self.TopoId),
         #)
         #self.convQa_WB = pcr.areatotal(
-        #    sum(np.multiply([sum(self.convQa_t[i]) for i in self.Classes], self.percent))
+        #    sum(
+        #        np.multiply([sum(self.convQa_t[i]) for i in self.Classes], self.percent)
+        #    )
         #    / 1000
         #    * self.surfaceArea,
         #    pcr.nominal(self.TopoId),
@@ -1614,16 +1568,9 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    self.QstateWB = pcr.areatotal(
         #        self.Qstate * self.timestepsecs, pcr.nominal(self.TopoId)
         #    )  # dit moet Qstate_new zijn ipv Qstate als je met de kin wave werkt en waterbalans wilt laten sluiten TODO aanpassen zodat het nog steeds werkt voor eerdere routing !!!
-        #    self.QeiastateWB = pcr.areatotal(
-        #        self.Qeiastate * self.timestepsecs, pcr.nominal(self.TopoId)
-        #    )  # dit moet Qstate_new zijn ipv Qstate als je met de kin wave werkt en waterbalans wilt laten sluiten TODO aanpassen zodat het nog steeds werkt voor eerdere routing !!!
-        #                
         #self.Qstate_WB = pcr.areatotal(
         #    self.Qstate_t * self.timestepsecs, pcr.nominal(self.TopoId)
         #)
-        #self.Qeiastate_WB = pcr.areatotal(
-        #    self.Qeiastate_t * self.timestepsecs, pcr.nominal(self.TopoId)
-        #)        
         ##        self.QstateWB = pcr.areatotal(sum(self.Qstate) * 0.0405, pcr.nominal(self.TopoId))
         ##        self.Qstate_WB = pcr.areatotal(sum(self.Qstate_t) * 0.0405, pcr.nominal(self.TopoId))
         ##        self.QstateWB = pcr.areatotal(self.Qstate, pcr.nominal(self.TopoId))
@@ -1633,8 +1580,8 @@ class WflowModel(pcraster.framework.DynamicModel):
         #self.WBtot = (
         #    self.P
         #    #- self.Ei
-        #    #+ self.EwiCorr    #adapted june 2020 as Ew is already counted in Ei so seems to be double counted here --- TO DO: check if this correction applies for all configurations and timesteps
-        #    #- self.Ew
+        #    #            + self.EwiCorr    #adapted june 2020 as Ew is already counted in Ei so seems to be double counted here --- TO DO: check if this correction applies for all configurations and timesteps
+        #    #            - self.Ew
         #    - self.Ea
         #    - self.Eu
         #    - self.Qtot
@@ -1660,8 +1607,6 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    + self.trackQ_WB
         #    - self.QstateWB
         #    + self.Qstate_WB
-        #    - self.QeiastateWB
-        #    + self.Qeiastate_WB
         #) / self.timestepsecs
         ## SUMMED FLUXES ======================================================================================
         #self.sumprecip = (
@@ -1689,7 +1634,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         #    np.multiply(self.Eu_, self.percent)
         #)
 
-        #self.QCatchmentMM = self.Qstate * self.QMMConvUp #DKim: Unnecessary
+        #self.QCatchmentMM = self.Qstate * self.QMMConvUp
 
 
 # The main function is used to run the program from the command line
@@ -1698,16 +1643,16 @@ class WflowModel(pcraster.framework.DynamicModel):
 def main(argv=None):
     """
     *Optional but needed it you want to run the model from the command line*
-    
+
     Perform command line execution of the model. This example uses the getopt
     module to parse the command line options.
-    
+
     The user can set the caseName, the runDir, the timestep and the configfile.
     """
     global multpars
     caseName = "default"
     runId = "run_default"
-    configfile = "wflow_tofuflex.ini"
+    configfile = "wflow_topoflex.ini"
     LogFileName = "wflow.log"
     _lastTimeStep = 0
     _firstTimeStep = 0
@@ -1777,7 +1722,7 @@ def main(argv=None):
         NoOverWrite=NoOverWrite,
         logfname=LogFileName,
         level=loglevel,
-        model="wflow_tofuflex",
+        model="wflow_topoflex",
         doSetupFramework=False,
     )
 

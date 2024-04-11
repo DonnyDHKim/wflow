@@ -1,0 +1,38 @@
+NLCD_imp_summary
+    Layer_1      
+ Min.   :  0.00  
+ 1st Qu.:  1.00  
+ Median : 18.00  
+ Mean   : 29.76  
+ 3rd Qu.: 54.00  
+ Max.   :100.00  
+ NA's   :78841   
+
+
+Proportion of cells (30m res) with over 10% imperviousness
+
+FALSE  TRUE 
+ 0.41  0.59 
+
+
+Proportion of cells (30m res) with over 25% imperviousness
+
+FALSE  TRUE 
+ 0.58  0.42 
+
+
+Proportion of cells (30m res) with over 50% imperviousness
+
+FALSE  TRUE 
+ 0.73  0.27 
+
+
+Ksat summary
+ SSURGO_Surf_Ksat_r_Filled_AEA_90m1e2
+ Min.   : 15.00                      
+ 1st Qu.: 62.00                      
+ Median :101.00                      
+ Mean   : 85.38                      
+ 3rd Qu.:101.00                      
+ Max.   :324.00                      
+ NA's   :44424                       

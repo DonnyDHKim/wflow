@@ -3359,7 +3359,7 @@ class wf_DynamicFramework(pcraster.framework.frameworkBase.FrameworkBase):
                     newName = name
                 else:
                     #newName = pcraster.framework.generateNameS(name, timestep) #DKim: generateNameT -> generateNameS
-                    newName = str(name + nextDateTime.strftime("%Y%m%d%H")) #DKim: it may need to be changed to str(name + nextDateTime.strftime("%Y%m%d%H")+".map")
+                    newName = str(name + nextDateTime.strftime("%Y%m%d%H") +".map") #DKim: it may need to be changed to str(name + nextDateTime.strftime("%Y%m%d%H")+".map")
 
         if style == 1:  # Normal reading of mapstack from DISK per via or via netcdf
             path = os.path.join(directoryPrefix, newName)
