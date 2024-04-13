@@ -1722,7 +1722,7 @@ def main(argv=None):
         NoOverWrite=NoOverWrite,
         logfname=LogFileName,
         level=loglevel,
-        model="wflow_topoflex",
+        model="wflow_topoflex_bm",
         doSetupFramework=False,
     )
 

@@ -1777,7 +1777,7 @@ def main(argv=None):
         NoOverWrite=NoOverWrite,
         logfname=LogFileName,
         level=loglevel,
-        model="wflow_tofuflex",
+        model="wflow_tofuflex_ns",
         doSetupFramework=False,
     )
 

@@ -1317,16 +1317,17 @@ def unsatZone_forAgri_Ep_percDvar(self, k):
     self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
     self.Su[k] = self.Su[k] + self.Cap
 
-    self.wbSu_[k] = (
-        self.Fa
-        - self.Eu
-        - self.Qu
-        - self.Quadd
-        - self.Perc
-        + self.Cap
-        - self.Su[k]
-        + self.Su_t[k]
-    )
+    if hasattr(self, 'wbSu_[k]'):
+        self.wbSu_[k] = (
+            self.Fa
+            - self.Eu
+            - self.Qu
+            - self.Quadd
+            - self.Perc
+            + self.Cap
+            - self.Su[k]
+            + self.Su_t[k]
+        ) #WB test
 
     self.Eu_[k] = self.Eu
     self.Qu_[k] = self.Qu + self.Quadd
