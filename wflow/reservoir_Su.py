@@ -98,16 +98,20 @@ def unsatZone_LP_beta(self, k):
 	
     Su_operator = self.Su_t[k] + self.Pe # DKim: this operation is done way too many times
     
-    self.Su[k] = pcr.ifthenelse(
-        Su_operator > self.sumax[k], self.sumax[k], Su_operator
-    )
-    self.Quadd = pcr.ifthenelse(
-        Su_operator > self.sumax[k],
-        Su_operator - self.sumax[k],
-        0,
-    )
+    #self.Su[k] = pcr.ifthenelse(
+    #    Su_operator > self.sumax[k], self.sumax[k], Su_operator
+    #)
+    self.Su[k] = pcr.min(Su_operator, self.sumax[k])
+
+    #self.Quadd = pcr.ifthenelse(
+    #    Su_operator > self.sumax[k],
+    #    Su_operator - self.sumax[k],
+    #    0,
+    #)
+    self.Quadd = pcr.max(Su_operator - self.sumax[k], 0)
+    
     self.SuN = self.Su[k] / self.sumax[k]
-    self.SiN = self.Si[k] / self.imax[k]
+    #self.SiN = self.Si[k] / self.imax[k]
 
     self.Eu1 = pcr.max((self.PotEvaporation - self.Ei), 0) * pcr.min(
         self.Su[k] / (self.sumax[k] * self.LP[k]), 1
@@ -117,55 +121,63 @@ def unsatZone_LP_beta(self, k):
 	
     self.Qu1 = (delta_Pe_Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
     self.Perc1 = self.perc[k] * self.SuN
+    
+    WB_operator = self.Qu1 + self.Eu1 + self.Perc1 # DKim: this operation is done way too many times
+
     self.Su[k] = (
-        self.Su_t[k] + (delta_Pe_Quadd) - self.Qu1 - self.Eu1 - self.Perc1
+        self.Su_t[k] + (delta_Pe_Quadd) - WB_operator
     )
 
     self.Su_diff = pcr.ifthenelse(self.Su[k] < 0, self.Su[k], 0)
+    
+    adjustment_factor = self.Su_diff / pcr.ifthenelse(WB_operator > 0, WB_operator, 1)
 	
-    WB_operator = self.Qu1 + self.Eu1 + self.Perc1 # DKim: this operation is done way too many times
-	
-    self.Eu = (
-        self.Eu1
-        + (
-            self.Eu1
-            / pcr.ifthenelse(
-                WB_operator > 0,
-                WB_operator,
-                1,
-            )
-        )
-        * self.Su_diff
-    )
-    self.Qu = (
-        self.Qu1
-        + (
-            self.Qu1
-            / pcr.ifthenelse(
-                WB_operator > 0,
-                WB_operator,
-                1,
-            )
-        )
-        * self.Su_diff
-    )
-    self.Perc = pcr.ifthenelse(
-        self.Perc1 > 0,
-        self.Perc1
-        + (
-            self.Perc1
-            / pcr.ifthenelse(
-                WB_operator > 0,
-                WB_operator,
-                1,
-            )
-        )
-        * self.Su_diff,
-        self.Perc1,
-    )
+    self.Eu = self.Eu1 + self.Eu1 * adjustment_factor
+    self.Qu = self.Qu1 + self.Qu1 * adjustment_factor
+    self.Perc = pcr.ifthenelse(self.Perc1 > 0, self.Perc1 + self.Perc1 * adjustment_factor, self.Perc1)
+    
+    #self.Eu = (
+    #    self.Eu1
+    #    + (
+    #        self.Eu1
+    #        / pcr.ifthenelse(
+    #            WB_operator > 0,
+    #            WB_operator,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff
+    #)
+    #self.Qu = (
+    #    self.Qu1
+    #    + (
+    #        self.Qu1
+    #        / pcr.ifthenelse(
+    #            WB_operator > 0,
+    #            WB_operator,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff
+    #)
+    #self.Perc = pcr.ifthenelse(
+    #    self.Perc1 > 0,
+    #    self.Perc1
+    #    + (
+    #        self.Perc1
+    #        / pcr.ifthenelse(
+    #            WB_operator > 0,
+    #            WB_operator,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff,
+    #    self.Perc1,
+    #)
     self.Su[k] = self.Su_t[k] + (delta_Pe_Quadd) - self.Eu - self.Qu - self.Perc
-    self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
-    self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
+    #self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
+    self.Su[k] = pcr.max(self.Su[k], 0)
+    #self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k]) #Not sure why this exist
 
     self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
     self.Su[k] = self.Su[k] + self.Cap
@@ -1347,14 +1359,19 @@ def unsatZone_forAgri_hourlyEp(self, k):
     - Code for ini-file: 25
     """
 
-    self.Su[k] = pcr.ifthenelse(
-        self.Su_t[k] + self.Fa > self.sumax[k], self.sumax[k], self.Su_t[k] + self.Fa
-    )
-    self.Quadd = pcr.ifthenelse(
-        self.Su_t[k] + self.Fa > self.sumax[k],
-        self.Su_t[k] + self.Fa - self.sumax[k],
-        0,
-    )
+    Su_operator = self.Su_t[k] + self.Fa
+
+    #self.Su[k] = pcr.ifthenelse(
+    #    self.Su_t[k] + self.Fa > self.sumax[k], self.sumax[k], self.Su_t[k] + self.Fa
+    #)
+    #self.Quadd = pcr.ifthenelse(
+    #    self.Su_t[k] + self.Fa > self.sumax[k],
+    #    self.Su_t[k] + self.Fa - self.sumax[k],
+    #    0,
+    #)
+    self.Su[k] = pcr.min(Su_operator, self.sumax[k])
+    self.Quadd = pcr.max(Su_operator - self.sumax[k], 0)
+    
     self.SuN = self.Su[k] / self.sumax[k]
     self.SiN = self.Si[k] / self.imax[k]
 
@@ -1367,64 +1384,74 @@ def unsatZone_forAgri_hourlyEp(self, k):
 
     self.Qu1 = (self.Fa - self.Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
     self.Perc1 = self.perc[k] * self.SuN
-    self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - self.Qu1 - self.Eu - self.Perc1
+    WB_operator = self.Qu1 + self.Eu1 + self.Perc1
+
+    #self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - self.Qu1 - self.Eu - self.Perc1
+    self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - WB_operator
 
     self.Su_diff = pcr.ifthenelse(self.Su[k] < 0, self.Su[k], 0)
-    self.Eu = (
-        self.Eu1
-        + (
-            self.Eu1
-            / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
-                1,
-            )
-        )
-        * self.Su_diff
-    )
-    self.Qu = (
-        self.Qu1
-        + (
-            self.Qu1
-            / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
-                1,
-            )
-        )
-        * self.Su_diff
-    )
-    self.Perc = pcr.ifthenelse(
-        self.Perc1 > 0,
-        self.Perc1
-        + (
-            self.Perc1
-            / pcr.ifthenelse(
-                self.Qu1 + self.Eu1 + self.Perc1 > 0,
-                self.Qu1 + self.Eu1 + self.Perc1,
-                1,
-            )
-        )
-        * self.Su_diff,
-        self.Perc1,
-    )
+    adjustment_factor = self.Su_diff / pcr.ifthenelse(WB_operator > 0, WB_operator, 1)
+
+    self.Eu = self.Eu1 + self.Eu1 * adjustment_factor
+    self.Qu = self.Qu1 + self.Qu1 * adjustment_factor
+    self.Perc = pcr.ifthenelse(self.Perc1 > 0, self.Perc1 + self.Perc1 * adjustment_factor, self.Perc1)
+
+    #self.Eu = (
+    #    self.Eu1
+    #    + (
+    #        self.Eu1
+    #        / pcr.ifthenelse(
+    #            self.Qu1 + self.Eu1 + self.Perc1 > 0,
+    #            self.Qu1 + self.Eu1 + self.Perc1,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff
+    #)
+    #self.Qu = (
+    #    self.Qu1
+    #    + (
+    #        self.Qu1
+    #        / pcr.ifthenelse(
+    #            self.Qu1 + self.Eu1 + self.Perc1 > 0,
+    #            self.Qu1 + self.Eu1 + self.Perc1,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff
+    #)
+    #self.Perc = pcr.ifthenelse(
+    #    self.Perc1 > 0,
+    #    self.Perc1
+    #    + (
+    #        self.Perc1
+    #        / pcr.ifthenelse(
+    #            self.Qu1 + self.Eu1 + self.Perc1 > 0,
+    #            self.Qu1 + self.Eu1 + self.Perc1,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff,
+    #    self.Perc1,
+    #)
     self.Su[k] = self.Su_t[k] + (self.Fa - self.Quadd) - self.Eu - self.Qu - self.Perc
     self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
-    self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
+    #self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
 
     self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
     self.Su[k] = self.Su[k] + self.Cap
 
-    self.wbSu_[k] = (
-        self.Fa
-        - self.Eu
-        - self.Qu
-        - self.Quadd
-        - self.Perc
-        + self.Cap
-        - self.Su[k]
-        + self.Su_t[k]
-    )
+    if hasattr(self, 'wbSu_[k]'):
+        self.wbSu_[k] = (
+            self.Fa
+            - self.Eu
+            - self.Qu
+            - self.Quadd
+            - self.Perc
+            + self.Cap
+            - self.Su[k]
+            + self.Su_t[k]
+        ) #WB test
 
     self.Eu_[k] = self.Eu
     self.Qu_[k] = self.Qu + self.Quadd
@@ -2011,16 +2038,20 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
     """
     Su_operator = self.Su_t[k] + self.Fa # DKim: this operation is done way too many times
 
-    self.Su[k] = pcr.ifthenelse(
-        Su_operator > self.sumax[k], self.sumax[k], Su_operator
-    )
-    self.Quadd = pcr.ifthenelse(
-        Su_operator > self.sumax[k],
-        Su_operator - self.sumax[k],
-        0,
-    )
+    #self.Su[k] = pcr.ifthenelse(
+    #    Su_operator > self.sumax[k], self.sumax[k], Su_operator
+    #)
+    self.Su[k] = pcr.min(Su_operator, self.sumax[k])
+
+    #self.Quadd = pcr.ifthenelse(
+    #    Su_operator > self.sumax[k],
+    #    Su_operator - self.sumax[k],
+    #    0,
+    #)
+    self.Quadd = pcr.max(Su_operator - self.sumax[k], 0)
+
     self.SuN = self.Su[k] / self.sumax[k]
-    self.SiN = self.Si[k] / self.imax[k]
+    #self.SiN = self.Si[k] / self.imax[k]
 
     # Originally, Eu1 considered frozen soil's impact.
     # No longer necessary when using urbZone_hourlyEp_Sa_beta_EIA. Removed: pcr.ifthenelse() & self.Ft_[k] 
@@ -2031,53 +2062,61 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
 
     self.Qu1 = (delta_Fa_Quadd) * (1 - (1 - self.SuN) ** self.beta[k])
     self.Perc1 = self.perc[k] * self.SuN
-    self.Su[k] = self.Su_t[k] + (delta_Fa_Quadd) - self.Qu1 - self.Eu - self.Perc1
+    
+    WB_operator = self.Qu1 + self.Eu1 + self.Perc1 # DKim: this operation is done way too many times
+
+    self.Su[k] = self.Su_t[k] + (delta_Fa_Quadd) - WB_operator
 
     self.Su_diff = pcr.ifthenelse(self.Su[k] < 0, self.Su[k], 0)
 	
-    WB_operator = self.Qu1 + self.Eu1 + self.Perc1 # DKim: this operation is done way too many times
+    adjustment_factor = self.Su_diff / pcr.ifthenelse(WB_operator > 0, WB_operator, 1)
 
-    self.Eu = (
-        self.Eu1
-        + (
-            self.Eu1
-            / pcr.ifthenelse(
-                WB_operator > 0,
-                WB_operator,
-                1,
-            )
-        )
-        * self.Su_diff
-    )
-    self.Qu = (
-        self.Qu1
-        + (
-            self.Qu1
-            / pcr.ifthenelse(
-                WB_operator > 0,
-                WB_operator,
-                1,
-            )
-        )
-        * self.Su_diff
-    )
-    self.Perc = pcr.ifthenelse(
-        self.Perc1 > 0,
-        self.Perc1
-        + (
-            self.Perc1
-            / pcr.ifthenelse(
-                WB_operator > 0,
-                WB_operator,
-                1,
-            )
-        )
-        * self.Su_diff,
-        self.Perc1,
-    )
+    self.Eu = self.Eu1 + self.Eu1 * adjustment_factor
+    self.Qu = self.Qu1 + self.Qu1 * adjustment_factor
+    self.Perc = pcr.ifthenelse(self.Perc1 > 0, self.Perc1 + self.Perc1 * adjustment_factor, self.Perc1)
+
+    #self.Eu = (
+    #    self.Eu1
+    #    + (
+    #        self.Eu1
+    #        / pcr.ifthenelse(
+    #            WB_operator > 0,
+    #            WB_operator,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff
+    #)
+    #self.Qu = (
+    #    self.Qu1
+    #    + (
+    #        self.Qu1
+    #        / pcr.ifthenelse(
+    #            WB_operator > 0,
+    #            WB_operator,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff
+    #)
+    #self.Perc = pcr.ifthenelse(
+    #    self.Perc1 > 0,
+    #    self.Perc1
+    #    + (
+    #        self.Perc1
+    #        / pcr.ifthenelse(
+    #            WB_operator > 0,
+    #            WB_operator,
+    #            1,
+    #        )
+    #    )
+    #    * self.Su_diff,
+    #    self.Perc1,
+    #)
     self.Su[k] = self.Su_t[k] + (delta_Fa_Quadd) - self.Eu - self.Qu - self.Perc
-    self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
-    self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
+    #self.Su[k] = pcr.ifthenelse(self.Su[k] < 0, 0, self.Su[k])
+    self.Su[k] = pcr.max(self.Su[k], 0)
+    #self.Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k])
 
     self.Cap = pcr.min(self.cap[k] * (1 - self.Su[k] / self.sumax[k]), self.Ss)
     self.Su[k] = self.Su[k] + self.Cap

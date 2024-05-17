@@ -59,11 +59,11 @@ def impervious_lag(self):
         self.convQimp.insert(
             0, 0 * pcr.scalar(self.catchArea)
         )  # convolution Qu for following time steps
-        self.Tfmap = self.Tfimp[0] * pcr.scalar(self.catchArea)
+        #self.Tfmap = self.Tfimp[0] * pcr.scalar(self.catchArea)
         del self.convQimp[-1]
         temp = [
             self.convQimp[i]
-            + (2 / self.Tfmap - 2 / (self.Tfmap * (self.Tfmap + 1)) * (self.Tfmap - i))
+            + (2 / self.Tfimpmap - 2 / (self.Tfimpmap * (self.Tfimpmap + 1)) * (self.Tfimpmap - i))
             * self.Qimpin
             for i in range(len(self.convQimp))
         ]

@@ -517,10 +517,11 @@ def agriZone_hourlyEp_Sa_beta(self, k):
     self.Sa[k] = self.Sa_t[k] + (self.Pe - self.Qaadd) - self.Ea - self.Fa - self.Qa
     self.Sa[k] = pcr.ifthenelse(self.Sa[k] < 0, 0, self.Sa[k])
     self.Sa_diff2 = pcr.ifthen(self.Sa[k] < 0, self.Sa[k])
-
-    self.wbSa_[k] = (
-        self.Pe - self.Ea - self.Qa - self.Qaadd - self.Fa - self.Sa[k] + self.Sa_t[k]
-    )
+    
+    if hasattr(self, 'wbSa_[k]'):
+        self.wbSa_[k] = (
+            self.Pe - self.Ea - self.Qa - self.Qaadd - self.Fa - self.Sa[k] + self.Sa_t[k]
+        ) #WB test
 
     self.Ea_[k] = self.Ea
     self.Qa_[k] = self.Qa + self.Qaadd

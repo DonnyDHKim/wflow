@@ -87,7 +87,8 @@ def fastRunoff_lag2(self, k):
     # self.D[k] < 1.00: changed to checking if the max value of the map is less than 1 when applying a D map instead of a single value read from the ini file.
     # TODO: check how this works if D = 1!
     #    if self.D[k] < 1.00:
-    if pcr.pcr2numpy(self.D[k], mv=-999).max() < 1:
+    #if pcr.pcr2numpy(self.D[k], mv=-999).max() < 1:
+    if self.maxD[k] < 1: #DKim:optimization. self.maxD defined at main topoflex/tofuflex.py.
         if self.convQu[k]:
             self.QfinLag = self.convQu[k][-1]
             #            self.Qf = self.Sf[k] * self.Kf[k]   #aangepast 17 juni 2020 to add possibility for non linear outflow from fast reservoir
@@ -95,15 +96,15 @@ def fastRunoff_lag2(self, k):
             self.Sf[k] = self.Sf[k] + self.QfinLag - self.Qf
 
             self.convQu[k].insert(
-                0, 0 * pcr.scalar(self.catchArea)
+                0, self.ZeroMap #0 * pcr.scalar(self.catchArea) #Dkim: optimization
             )  # convolution Qu for following time steps
-            self.Tfmap = self.Tf[k] * pcr.scalar(self.catchArea)
+            #self.Tfmap = self.Tf[k] * pcr.scalar(self.catchArea) #DKim: optimization. self.Tfmap[k]
             del self.convQu[k][-1]
             temp = [
                 self.convQu[k][i]
                 + (
-                    2 / self.Tfmap
-                    - 2 / (self.Tfmap * (self.Tfmap + 1)) * (self.Tfmap - i)
+                    2 / self.Tfmap[k]
+                    - 2 / (self.Tfmap[k] * (self.Tfmap[k] + 1)) * (self.Tfmap[k] - i)
                 )
                 * self.Qfin
                 for i in range(len(self.convQu[k]))
@@ -237,11 +238,11 @@ def fastRunoff_lag_agriDitch(self, k):
         self.convQa[k].insert(
             0, 0 * pcr.scalar(self.catchArea)
         )  # convolution Qu for following time steps
-        self.Tfmap = self.Tfa[k] * pcr.scalar(self.catchArea)
+        #self.Tfmap = self.Tfa[k] * pcr.scalar(self.catchArea)
         del self.convQa[k][-1]
         temp = [
             self.convQa[k][i]
-            + (2 / self.Tfmap - 2 / (self.Tfmap * (self.Tfmap + 1)) * (self.Tfmap - i))
+            + (2 / self.Tfamap[k] - 2 / (self.Tfamap[k] * (self.Tfamap[k] + 1)) * (self.Tfamap[k] - i))
             * self.Qfain
             for i in range(len(self.convQa[k]))
         ]
@@ -387,9 +388,10 @@ def routingQf_Qs_grid(self):
     """
     self.Qtot = self.Qftotal + self.Qs_  # total local discharge in mm/hour
     self.Qtotal = (
-        self.Qtot / 1000 * self.surfaceArea / self.timestepsecs
+        #self.Qtot / 1000 * self.surfaceArea / self.timestepsecs
+        self.Qtot * self.unitconverter
     )  # total local discharge in m3/s
-    self.QtotNoRout = pcr.accuflux(self.TopoLdd, self.Qtotal)
+    #self.QtotNoRout = pcr.accuflux(self.TopoLdd, self.Qtotal) #Dkim: why is this here. Commenting out.
     self.Qstate_t = self.Qstate
     self.Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
     self.Qrout = pcr.accutraveltimeflux(
@@ -399,14 +401,18 @@ def routingQf_Qs_grid(self):
         self.TopoLdd, self.Qtest, self.velocity
     )
 
-    self.Qtlag = self.Qrout
-    self.QLagTot = self.Qrout
+    self.Qtlag = self.QLagTot = self.Qrout
 
     # water balance of flux routing
-    self.dSdt = self.Qstate - self.Qstate_t
-    self.WB_rout = (
-        pcr.accuflux(self.TopoLdd, self.Qtotal - self.dSdt) - self.Qrout
-    ) / pcr.accuflux(self.TopoLdd, self.Qtotal)
+    if hasattr(self, 'WB_rout'):
+        self.dSdt = self.Qstate - self.Qstate_t
+        self.WB_rout = (
+            pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia - self.dSdt) - self.Qrout - self.Qrouteia
+        ) / pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia) #wbtest
+    #self.dSdt = self.Qstate - self.Qstate_t
+    #self.WB_rout = (
+    #    pcr.accuflux(self.TopoLdd, self.Qtotal - self.dSdt) - self.Qrout
+    #) / pcr.accuflux(self.TopoLdd, self.Qtotal)
 
 
 def routingQf_Qs_grid_mm(self):
@@ -519,6 +525,98 @@ def routingQf_Qs_grid_EIA(self):
     self.Qeialag = self.Qrouteia
     self.QLagTot = self.Qrout + self.Qrouteia
 
+
+    # water balance of flux routing
+    if hasattr(self, 'WB_rout'):
+        self.dSdt = self.Qstate - self.Qstate_t
+        self.WB_rout = (
+            pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia - self.dSdt) - self.Qrout - self.Qrouteia
+        ) / pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia) #wbtest
+        
+
+
+def routingQf_Qs_grid_EIA2(self):
+    """
+    - For the faster model run
+    - Routing of both Qf and Qs
+    - based on a velocity map
+    - Both CMS and mm
+    """
+    #self.Qtot = self.Qftotal + self.Qs_  # total local discharge in mm/hour
+    #self.Qtotal = (
+    #    self.Qtot * self.unitconverter # (1 - self.EIA) as we are converting "mm" from pervious
+    #)  # total local discharge in m3/s
+    #self.Qeia = (
+    #    self.Qfimp / 1000 * self.surfaceArea * self.EIA / self.timestepsecs
+    #)  # Qeia local discharge in m3/s
+    
+    self.Qtotal = self.Qftotal + self.Qfimp + self.Qs_  # total local discharge in mm/hour
+
+    self.Qstate_t = self.Qstate
+    Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
+    #self.Qeiastate_t = self.Qeiastate
+    #Qeiatest = self.Qeiastate + self.Qeia # DKim: using this instead.
+    
+    self.Qrout = pcr.accutraveltimeflux(
+        self.TopoLdd, Qtest, self.velocity
+    )
+    #self.Qrouteia = pcr.accutraveltimeflux(
+    #    self.TopoLdd, Qeiatest, self.velocity
+    #)
+
+    self.Qstate = pcr.accutraveltimestate(
+        self.TopoLdd, Qtest, self.velocity
+    )
+    #self.Qeiastate = pcr.accutraveltimestate(
+    #    self.TopoLdd, Qeiatest, self.velocity
+    #)
+
+
+    #self.QLagTotmm = self.Qrout + self.Qrouteia
+    self.QLagTotmm = self.Qrout #mm/h
+
+    self.Qtlag = self.Qrout * self.unitconverter #m3/s
+    #self.Qeialag = self.Qrouteia * self.unitconverter #m3/s
+
+    #self.QLagTot = self.Qtlag + self.Qeialag
+    self.QLagTot = self.Qtlag #m3/s
+
+
+
+
+    # water balance of flux routing
+    if hasattr(self, 'WB_rout'):
+        self.dSdt = self.Qstate - self.Qstate_t
+        self.WB_rout = (
+            pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia - self.dSdt) - self.Qrout - self.Qrouteia
+        ) / pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia) #wbtest
+        
+        
+def routingQf_Qs_grid2(self):
+    """
+    - Routing of both Qf and Qs
+    - based on a velocity map
+    - Both CMS and mm
+    """
+    #self.Qtot = self.Qftotal + self.Qs_  # total local discharge in mm/hour
+    #self.Qtotal = (
+    #    #self.Qtot / 1000 * self.surfaceArea / self.timestepsecs
+    #    self.Qtot * self.unitconverter
+    #)  # total local discharge in m3/s
+    self.Qtotal = self.Qftotal + self.Qs_
+    #self.QtotNoRout = pcr.accuflux(self.TopoLdd, self.Qtotal) #Dkim: why is this here. Commenting out.
+    self.Qstate_t = self.Qstate
+    self.Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
+    self.Qrout = pcr.accutraveltimeflux(
+        self.TopoLdd, self.Qtest, self.velocity
+    )
+    self.Qstate = pcr.accutraveltimestate(
+        self.TopoLdd, self.Qtest, self.velocity
+    )
+
+    self.QLagTotmm = self.Qrout #mm/h
+    self.Qtlag = self.Qrout * self.unitconverter #m3/s
+    self.QLagTot = self.Qtlag #m3/s
 
     # water balance of flux routing
     if hasattr(self, 'WB_rout'):

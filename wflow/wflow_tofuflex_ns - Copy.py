@@ -650,8 +650,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.totalArea = pcr.areatotal(self.surfaceArea, pcr.nominal(self.TopoId))
         self.percentArea = self.surfaceArea / self.totalArea
         # Dkim: testing to see if self.surfaceArea can be just integer
-        self.surfaceArea = int(np.nanmean(pcr.pcr2numpy(self.surfaceArea, mv=np.nan)))
-        self.unitconverter = self.surfaceArea / self.timestepsecs / 1000 #DKim
+        self.surfaceArea = int(np.nanmean(pcr.pcr2numpy(self.surfaceArea, mv=np.nan)))                                                                                                                       
         self.Transit = pcr.scalar(
             pcr.readmap(os.path.join(self.Dir, wflow_transit))
         )  #: Map with surface area per cell
@@ -689,17 +688,11 @@ class WflowModel(pcraster.framework.DynamicModel):
 #        self.D = eval(str(configget(self.config, "model", "D", "[0]")))
         self.D = [self.readtblDefault2(self.Dir + "/" + self.intbl + "/D" + self.NamesClasses[i] + ".tbl",self.LandUse,subcatch,self.Soil,0.2) for i in self.Classes]
 
-        self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
+        #self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
         self.D = [pcr.ifthenelse(self.D[i] >= 1, 0.95, self.D[i]) for i in self.Classes]        #DKim: adding self.D constraining here to fasten up the runtime, which was originally done in reservoir_Sf.
-        self.maxD = [pcr.pcr2numpy(self.D[i], mv=-999).max() for i in self.Classes] #DKim: optimization for Sf
-        
         self.Tf = eval(str(configget(self.config, "model", "Tf", "[0]")))
-        self.Tfmap = [self.Tf[i] * pcr.scalar(self.catchArea) for i in self.Classes] #DKim: optimization for Sf
         self.Tfa = eval(str(configget(self.config, "model", "Tfa", "[0]")))
-        self.Tfamap = [self.Tfa[i] * pcr.scalar(self.catchArea) for i in self.Classes] #DKim: optimization for Sf
         self.Tfimp  = eval(str(configget(self.config, "model", "Tfimp", "[1]"))) #DKim
-        self.Tfimpmap = self.Tfimp[0] * pcr.scalar(self.catchArea) #DKim: optimization for Sf #reservoir_Simp.py
-
 
         # MODEL PARAMETERS - BASED ON TABLES
         self.imax = [
@@ -755,7 +748,7 @@ class WflowModel(pcraster.framework.DynamicModel):
             for i in self.Classes
         ]
         #self.beta[0] = self.beta[0] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in wetland. Only for test purpose. Madly inaccurate.
-        self.beta[1] = self.beta[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: beta in hillslope
+        #self.beta[1] = self.beta[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: beta in hillslope
         #self.beta[2] = self.beta[2] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in plateau. Decided not to implement after series of testing.
         self.betaA = [
             self.readtblDefault2(
@@ -779,7 +772,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         ]
         self.Kf = [
             self.readtblDefault2(
-                self.Dir + "/" + self.intbl + "/Kf" + self.NamesClasses[i] + ".tbl",
+                self.Dir + "/" + self.intbl + "/Kf" + self.NamesClasses[i] + "_OG.tbl", #DKim: no scaling
                 self.LandUse,
                 subcatch,
                 self.Soil,
@@ -791,7 +784,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         #self.Kf[0] = self.Kf[0] * (1 + (self.TIA - self.EIA)/2 * 4.5)
         self.Kfa = [
             self.readtblDefault2(
-                self.Dir + "/" + self.intbl + "/Kfa" + self.NamesClasses[i] + ".tbl",
+                self.Dir + "/" + self.intbl + "/Kfa" + self.NamesClasses[i] + "_OG.tbl", #DKim: no scaling
                 self.LandUse,
                 subcatch,
                 self.Soil,
@@ -1414,55 +1407,66 @@ class WflowModel(pcraster.framework.DynamicModel):
             #    eval_str = "reservoir_Sw.snow_no_reservoir(self, k)"
             #eval(eval_str)
 
-            # INTERCEPTION
-            method_name = self.selectSi[k] if self.selectSi[k] else 'interception_no_reservoir'
-            method_to_call = getattr(reservoir_Si, method_name)  # Retrieve the method
-            method_to_call(self, k)  # Call the method
-        
-            # AGRICULTURE ZONE
-            method_name = self.selectSa[k] if self.selectSa[k] else 'agriZone_no_reservoir'
-            method_to_call = getattr(reservoir_Sa, method_name)  # Retrieve the method
-            method_to_call(self, k)  # Call the method
-        
-            # UNSATURATED ZONE
-            method_name = self.selectSu[k] if self.selectSu[k] else 'unsatZone_no_reservoir'
-            method_to_call = getattr(reservoir_Su, method_name)  # Retrieve the method
-            method_to_call(self, k)  # Call the method
-        
-            # FAST RUNOFF RESERVOIR
-            method_name = self.selectSf[k] if self.selectSf[k] else 'fastRunoff_no_reservoir'
-            method_to_call = getattr(reservoir_Sf, method_name)  # Retrieve the method
-            method_to_call(self, k)  # Call the method
-        
-            # FAST AGRICULTURE DITCHES RUNOFF RESERVOIR
-            method_name = self.selectSfa[k] if self.selectSfa[k] else 'fastAgriRunoff_no_reservoir'
-            method_to_call = getattr(reservoir_Sf, method_name)  # Retrieve the method
-            method_to_call(self, k)  # Call the method
-        
-        # TOTAL RUNOFF
-        self.Qftotal = sum(x * y for x, y in zip(self.Qf_, self.percent)) + sum(x * y for x, y in zip(self.Qfa_, self.percent))
-        
-        # SLOW RUNOFF RESERVOIR
-        method_name = self.selectSs if self.selectSs else 'groundWater_no_reservoir'
-        method_to_call = getattr(reservoir_Ss, method_name)  # Retrieve the method
-        method_to_call(self)  # Call the method
+            # INTERCEPTION =========================================================================================
+            if self.selectSi[k]:
+                eval_str = "reservoir_Si.{:s}(self, k)".format(self.selectSi[k])
+            else:
+                eval_str = "reservoir_Si.interception_no_reservoir(self, k)"
+            eval(eval_str)
+
+            # AGRICULTURE ZONE ======================================================================================
+            if self.selectSa[k]:
+                eval_str = "reservoir_Sa.{:s}(self, k)".format(self.selectSa[k])
+            else:
+                eval_str = "reservoir_Sa.agriZone_no_reservoir(self, k)"
+            eval(eval_str)
+
+            # UNSATURATED ZONE ======================================================================================
+            if self.selectSu[k]:
+                eval_str = "reservoir_Su.{:s}(self, k)".format(self.selectSu[k])
+            else:
+                eval_str = "reservoir_Su.unsatZone_no_reservoir(self, k)"
+            eval(eval_str)
+
+            # FAST RUNOFF RESERVOIR ===================================================================================
+            if self.selectSf[k]:
+                eval_str = "reservoir_Sf.{:s}(self, k)".format(self.selectSf[k])
+            else:
+                eval_str = "reservoir_Sf.fastRunoff_no_reservoir(self, k)"
+            eval(eval_str)
+
+            # FAST AGRICULTURE DITCHES RUNOFF RESERVOIR ===================================================================================
+            if self.selectSfa[k]:
+                eval_str = "reservoir_Sf.{:s}(self, k)".format(self.selectSfa[k])
+            else:
+                eval_str = "reservoir_Sf.fastAgriRunoff_no_reservoir(self, k)"
+            eval(eval_str)
+
+        # TOTAL RUNOFF =============================================================================================
+        self.Qftotal = sum([x * y for x, y in zip(self.Qf_, self.percent)]) + sum([x * y for x, y in zip(self.Qfa_, self.percent)]) #Qeia bypasses Sf lag-function(s) and directly go into routing.
+
+        # SLOW RUNOFF RESERVOIR ===========================================================================
+        if self.selectSs:
+            eval_str = "reservoir_Ss.{:s}(self)".format(self.selectSs)
+        else:
+            eval_str = "reservoir_Ss.groundWater_no_reservoir(self)"
+        eval(eval_str)
 
 
         # DKim: Impervious fast runoff reservoir=======================================
-        method_name = self.selectSimp if self.selectSimp else 'impervious_no_lag'
-        method_to_call = getattr(reservoir_Simp, method_name)  # Retrieve the method
-        method_to_call(self)  # Call the method
-        #if self.selectSimp:
-        #    eval_str = "reservoir_Simp.{:s}(self)".format(self.selectSimp)
-        #else:
-        #    eval_str = "reservoir_Simp.impervious_no_lag(self)"
-        #eval(eval_str)
+        if self.selectSimp:
+            eval_str = "reservoir_Simp.{:s}(self)".format(self.selectSimp)
+        else:
+            eval_str = "reservoir_Simp.impervious_no_lag(self)"
+        eval(eval_str)
 
 
         # ROUTING
-        method_name = self.selectRout if self.selectRout else 'noRouting'
-        method_to_call = getattr(reservoir_Sf, method_name)  # Retrieve the method
-        method_to_call(self)  # Call the method
+        if self.selectRout:
+            eval_str = "reservoir_Sf.{:s}(self)".format(self.selectRout)
+        else:
+            eval_str = "reservoir_Sf.noRouting(self)"
+        eval(eval_str)
 
         ## WATER BALANCE (per reservoir, per cell) ========================================================================================
         #self.QtlagWB = (self.Qtlag / self.surfaceArea) * 1000 * self.timestepsecs
@@ -1773,7 +1777,7 @@ def main(argv=None):
         NoOverWrite=NoOverWrite,
         logfname=LogFileName,
         level=loglevel,
-        model="wflow_tofuflex",
+        model="wflow_tofuflex_ns",
         doSetupFramework=False,
     )
 

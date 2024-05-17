@@ -101,4 +101,5 @@ examples/fulton_georgia_2047963_02336410/output
 examples/fulton_georgia_2047963_02336410/output_BM
 examples/fulton_georgia_2047963_02336410/temp
 wflow_og/
+notebooks/par_runs/
 *.xml
