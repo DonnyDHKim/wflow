@@ -53,8 +53,11 @@ def impervious_lag(self):
     if self.convQimp:
         self.QfimpinLag = self.convQimp[-1]
         self.Qfimp = self.Sfimp * self.Kfimp
-        self.Sfimp = pcr.ifthenelse((self.Sfimp + self.QfimpinLag - self.Qfimp - self.PotEvaporation)>0, (self.Sfimp + self.QfimpinLag - self.Qfimp - self.PotEvaporation), 0)
+        sfimp_temp = self.Sfimp + self.QfimpinLag - self.Qfimp 
+        self.Eimp = pcr.ifthenelse(sfimp_temp > self.PotEvaporation, self.PotEvaporation, 0)
+        #self.Sfimp = pcr.ifthenelse((self.Sfimp + self.QfimpinLag - self.Qfimp - self.PotEvaporation)>0, (self.Sfimp + self.QfimpinLag - self.Qfimp - self.PotEvaporation), 0)
         #self.Sfimp = self.Sfimp + self.QfimpinLag - self.Qfimp
+        self.Sfimp = sfimp_temp - self.Eimp
 
         self.convQimp.insert(
             0, 0 * pcr.scalar(self.catchArea)
@@ -71,8 +74,10 @@ def impervious_lag(self):
 
     else:
         self.Qfimp = self.Sfimp * self.Kfimp
-        self.Sfimp =  pcr.ifthenelse((self.Sfimp + self.Qimpin - self.Qfimp - self.PotEvaporation) > 0, (self.Sfimp + self.Qimpin - self.Qfimp - self.PotEvaporation), 0)
-        #self.Sfimp =  self.Sfimp + self.Qimpin - self.Qfimp
+        sfimp_temp = self.Sfimp + self.QfimpinLag - self.Qfimp 
+        self.Eimp = pcr.ifthenelse(sfimp_temp > self.PotEvaporation, self.PotEvaporation, 0)
+        self.Sfimp = sfimp_temp - self.Eimp
+
     # commented on 4 August 2015, as the output of this reservoir should not depent on the value of D
     #    else:
     #        self.Qfa = self.ZeroMap

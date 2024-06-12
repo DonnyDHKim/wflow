@@ -806,7 +806,9 @@ class WflowModel(pcraster.framework.DynamicModel):
                 self.Soil,
                 0.05,
             )#DKim
-        self.Kfimp = self.Kfimp * (1 + (self.EIA) * 3.5) #testing with distributed layout first: self.Kimp * ((1-self.EIA) + (self.EIA *4.5))
+        #self.Kfimp = self.Kfimp * (1 + (self.EIA) * 3.5) #testing with distributed layout first: self.Kimp * ((1-self.EIA) + (self.EIA *4.5))
+        #self.Kfimp = self.Kfimp  * (1 + 4.5 * (self.EIA / self.TIA))
+        self.Kfimp = self.Kfimp  * (3 + 2.5 * (self.EIA / (self.TIA + 0.001)))
         self.perc = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/perc" + self.NamesClasses[i] + ".tbl",
@@ -1686,6 +1688,12 @@ class WflowModel(pcraster.framework.DynamicModel):
         #)
 
         #self.QCatchmentMM = self.Qstate * self.QMMConvUp #DKim: Unnecessary
+        
+        self.AET = (
+            sum(np.multiply(self.Eu_, self.percent))
+            + sum(np.multiply(self.Ea_, self.percent))
+            + np.multiply(self.Eimp, self.EIA)
+        )  # Actual evaporation        
 
 
 # The main function is used to run the program from the command line

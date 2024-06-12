@@ -492,9 +492,8 @@ def routingQf_Qs_grid_EIA(self):
     - Routing of both Qf and Qs
     - based on a velocity map
     """
-    self.Qtot = self.Qftotal + self.Qs_  # total local discharge in mm/hour
     self.Qtotal = (
-        self.Qtot / 1000 * self.surfaceArea * (1 - self.EIA) / self.timestepsecs # (1 - self.EIA) as we are converting "mm" from pervious
+        self.Qftotal / 1000 * self.surfaceArea * (1 - self.EIA) / self.timestepsecs # (1 - self.EIA) as we are converting "mm" from pervious
     )  # total local discharge in m3/s
     self.Qeia = (
         self.Qfimp / 1000 * self.surfaceArea * self.EIA / self.timestepsecs
@@ -503,7 +502,7 @@ def routingQf_Qs_grid_EIA(self):
     #self.QeiaNoRout = pcr.accuflux(self.TopoLdd, self.Qeia)
 
     self.Qstate_t = self.Qstate
-    Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
+    Qtest = self.Qstate + self.Qtotal + (self.Qs_ / 1000 * self.surfaceArea * self.EIA / self.timestepsecs) # DKim: using this instead.
     self.Qeiastate_t = self.Qeiastate
     Qeiatest = self.Qeiastate + self.Qeia # DKim: using this instead.
     
@@ -540,9 +539,8 @@ def routingQf_Qs_grid_EIA2(self):
     - For the faster model run
     - Routing of both Qf and Qs
     - based on a velocity map
-    - Both CMS and mm
+    - Can write both CMS and mm
     """
-    #self.Qtot = self.Qftotal + self.Qs_  # total local discharge in mm/hour
     #self.Qtotal = (
     #    self.Qtot * self.unitconverter # (1 - self.EIA) as we are converting "mm" from pervious
     #)  # total local discharge in m3/s
@@ -550,7 +548,7 @@ def routingQf_Qs_grid_EIA2(self):
     #    self.Qfimp / 1000 * self.surfaceArea * self.EIA / self.timestepsecs
     #)  # Qeia local discharge in m3/s
     
-    self.Qtotal = self.Qftotal + self.Qfimp + self.Qs_  # total local discharge in mm/hour
+    self.Qtotal = self.Qftotal * (1 - self.EIA) + self.Qfimp * self.EIA + self.Qs_  # total local discharge in mm/hour
 
     self.Qstate_t = self.Qstate
     Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
@@ -571,7 +569,6 @@ def routingQf_Qs_grid_EIA2(self):
     #    self.TopoLdd, Qeiatest, self.velocity
     #)
 
-
     #self.QLagTotmm = self.Qrout + self.Qrouteia
     self.QLagTotmm = self.Qrout #mm/h
 
@@ -580,9 +577,6 @@ def routingQf_Qs_grid_EIA2(self):
 
     #self.QLagTot = self.Qtlag + self.Qeialag
     self.QLagTot = self.Qtlag #m3/s
-
-
-
 
     # water balance of flux routing
     if hasattr(self, 'WB_rout'):
