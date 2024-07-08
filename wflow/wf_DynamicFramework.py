@@ -1236,8 +1236,10 @@ class wf_DynamicFramework(pcraster.framework.frameworkBase.FrameworkBase):
                     )
                     sys.exit(1)
 
-        for file in glob.glob(caseName + "/" + intbl + "/*.tbl"):
-            shutil.copy(file, caseName + "/" + runId + "/" + intbl)
+        #for file in glob.glob(caseName + "/" + intbl + "/*.tbl"):
+        for file in glob.glob(os.path.join(caseName, intbl + "/*.tbl")):
+            #print(file)
+            shutil.copy(file, caseName + "/" + runId + "/" + "intbl") #DKIM
         try:
             shutil.copy(
                 caseName + "/" + configfile, caseName + "/" + runId + "/runinfo"

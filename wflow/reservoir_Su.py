@@ -108,7 +108,7 @@ def unsatZone_LP_beta(self, k):
     #    Su_operator - self.sumax[k],
     #    0,
     #)
-    self.Quadd = pcr.max(Su_operator - self.sumax[k], 0)
+    self.Quadd = pcr.max(Su_operator - self.sumax[k], 0) #excess water
     
     self.SuN = self.Su[k] / self.sumax[k]
     #self.SiN = self.Si[k] / self.imax[k]

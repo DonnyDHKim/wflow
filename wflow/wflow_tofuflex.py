@@ -699,7 +699,8 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.Tfamap = [self.Tfa[i] * pcr.scalar(self.catchArea) for i in self.Classes] #DKim: optimization for Sf
         self.Tfimp  = eval(str(configget(self.config, "model", "Tfimp", "[1]"))) #DKim
         self.Tfimpmap = self.Tfimp[0] * pcr.scalar(self.catchArea) #DKim: optimization for Sf #reservoir_Simp.py
-
+        #self.velocity = self.velocity * (1-self.TIA) + 2 * self.velocity * (self.TIA - self.EIA) + 3 * (self.EIA)        #DKIM: urban adaptation of velocity map
+        self.velocity = self.velocity * (1-self.EIA) + 4 * self.velocity * (self.EIA)        #DKIM: urban adaptation of velocity map2
 
         # MODEL PARAMETERS - BASED ON TABLES
         self.imax = [
@@ -809,6 +810,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         #self.Kfimp = self.Kfimp * (1 + (self.EIA) * 3.5) #testing with distributed layout first: self.Kimp * ((1-self.EIA) + (self.EIA *4.5))
         #self.Kfimp = self.Kfimp  * (1 + 4.5 * (self.EIA / self.TIA))
         self.Kfimp = self.Kfimp  * (3 + 2.5 * (self.EIA / (self.TIA + 0.001)))
+        self.Kfimp = pcr.ifthenelse(self.Kfimp > 1, 1, self.Kfimp)
         self.perc = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/perc" + self.NamesClasses[i] + ".tbl",

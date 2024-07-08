@@ -74,7 +74,7 @@ def impervious_lag(self):
 
     else:
         self.Qfimp = self.Sfimp * self.Kfimp
-        sfimp_temp = self.Sfimp + self.QfimpinLag - self.Qfimp 
+        sfimp_temp = self.Sfimp + self.Qimpin - self.Qfimp 
         self.Eimp = pcr.ifthenelse(sfimp_temp > self.PotEvaporation, self.PotEvaporation, 0)
         self.Sfimp = sfimp_temp - self.Eimp
 

@@ -29,6 +29,37 @@ def modify_and_save_ini(file_path, index, new_file_path):
 
 
 
+def modify_and_save_ini2(file_path, index, new_numbers, new_file_path):
+    # Read the existing content from the file
+    with open(file_path, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+    
+    # Modify lines containing 'intbl'
+    modified_lines = []
+    for line in lines:
+        if 'intbl' in line:
+            modified_line = f'intbl = temp/{index}/intbl\n'
+            modified_lines.append(modified_line)
+        elif 'Tf = [' in line:
+            # Modify the line with the new numbers for Tf
+            tf_values = [int(new_numbers[0]), int(new_numbers[2]), int(new_numbers[3])]
+            modified_line = f'Tf = [{", ".join(map(str, tf_values))}]\n'
+            modified_lines.append(modified_line)
+        elif 'Tfa = [' in line:
+            # Modify the line with the new numbers for Tfa
+            tfa_values = [0, 0, int(new_numbers[1])]
+            modified_line = f'Tfa = [{", ".join(map(str, tfa_values))}]\n'
+            modified_lines.append(modified_line)
+        else:
+            modified_lines.append(line)
+    
+    # Save the modified content to a new file
+    with open(new_file_path, 'w', encoding='utf-8') as new_file:
+        new_file.writelines(modified_lines)
+
+
+
+
 def modify_and_save_intbl(file_path, new_number, new_file_path):
     # Read the existing text
     with open(file_path, 'r', encoding='utf-8') as file:

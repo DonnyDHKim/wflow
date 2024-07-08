@@ -9,8 +9,9 @@ from ipywidgets import Output
 import importlib
 import sys
 import argparse
+import glob
 
-def run_model(wflow_cloneMap, caseName, model_ver, runId, configfile, datetimestart, datetimeend):
+def run_model(wflow_cloneMap, caseName, model_ver, runId, configfile, intbl_path, datetimestart, datetimeend):
     try:
         module_path = "D:\\GitHub\\wflow"  # Adjust this path to the actual path of the 'wflow' module
         if module_path not in sys.path:
@@ -30,7 +31,15 @@ def run_model(wflow_cloneMap, caseName, model_ver, runId, configfile, datetimest
         dynModelFw = wf_DynamicFramework(myModel, datetimestart=datetimestart, lastTimeStep=lastTimeStep, firstTimestep=firstTimestep, timestepsecs=timestepsecs, mode="steps")
     
         logfname = f"wflow_{os.getpid()}.log"
-        dynModelFw.createRunId(NoOverWrite=False, logfname=logfname, level=logging.ERROR, model=model_ver)
+        
+        ## Validate intbl_path
+        #logging.info(f"Checking intbl_path: {intbl_path}")
+        #if not os.path.exists(intbl_path):
+        #    raise FileNotFoundError(f"intbl_path does not exist: {intbl_path}")
+        #if not glob.glob(os.path.join(intbl_path, "*.tbl")):
+        #    raise FileNotFoundError(f"No .tbl files found in intbl_path: {intbl_path}")
+        
+        dynModelFw.createRunId(intbl=intbl_path, NoOverWrite=False, logfname=logfname, level=logging.ERROR, model=model_ver)
         
         dynModelFw._runInitial()
         dynModelFw._runResume()
@@ -71,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('--datetimeend', type=lambda s: dt.datetime.strptime(s, '%Y-%m-%d %H:%M:%S'), required=True, help="End date in 'YYYY-MM-DD HH:MM:SS' format")
     parser.add_argument('--model_ver', nargs='+', required=True, help="List of model versions to run")
     parser.add_argument('--sp_config', type=str, required=True, help="Spatial configuration string")
-    parser.add_argument('--csv_path', type=str, required=True, help="Path to the CSV file")
+    parser.add_argument('--sample_size', type=str, required=True, help="Sample size, determined by the parameterset CSV file")
     parser.add_argument('--num_processes', type=int, required=True, help="Number of processes to use")
 
     args = parser.parse_args()
@@ -79,7 +88,8 @@ if __name__ == "__main__":
     out = Output()
     display(out)
 
-    df = pd.read_csv(args.csv_path)
+    #df = pd.read_csv(args.csv_path)#.iloc[250:499, :] #adjust if needed?
+    sample_size = int(args.sample_size)
 
     caseName = os.path.join("D:\\", "wflow_models", args.wsName)
     wflow_cloneMap = 'wflow_subcatch.map' 
@@ -87,7 +97,8 @@ if __name__ == "__main__":
     set_start_method('spawn')
     num_processes = args.num_processes
     args_list = []
-    for i in range(len(df)):
+#    for i in range(len(df)):
+    for i in range(0, sample_size): # adjust if needed?
         for model in args.model_ver:
             if model == "wflow_tofuflex":
                 args_list.append((
@@ -96,6 +107,7 @@ if __name__ == "__main__":
                     "wflow_tofuflex", 
                     os.path.join(str(args.outpath), f"{i}"), 
                     os.path.join("temp", str(i), f"wflow_tofuflex{args.sp_config}_{i}.ini"),
+                    os.path.join("temp", str(i), "intbl"),
                     args.datetimestart,
                     args.datetimeend
                 ))
@@ -106,9 +118,11 @@ if __name__ == "__main__":
                     "wflow_tofuflex_ns", 
                     os.path.join(str(args.outpath), f"ns_{i}"), 
                     os.path.join("temp", str(i), f"wflow_tofuflex_ns{args.sp_config}_{i}.ini"),
+                    os.path.join("temp", str(i), "intbl"),
                     args.datetimestart,
                     args.datetimeend
                 ))
+                #print(glob.glob(os.path.join(caseName, os.path.join("temp", str(i), "intbl") + "/*.tbl")))
             elif model == "wflow_topoflex_bm":
                 args_list.append((
                     wflow_cloneMap, 
@@ -116,6 +130,7 @@ if __name__ == "__main__":
                     "wflow_topoflex_bm", 
                     os.path.join(str(args.outpath), f"bm_{i}"), 
                     os.path.join("temp", str(i), f"wflow_topoflex_bm{args.sp_config}_{i}.ini"),
+                    os.path.join("temp", str(i), "intbl"),
                     args.datetimestart,
                     args.datetimeend
                 ))
