@@ -33,6 +33,12 @@ def modify_and_save_ini2(file_path, index, new_numbers, new_file_path):
     # Read the existing content from the file
     with open(file_path, 'r', encoding='utf-8') as file:
         lines = file.readlines()
+
+    # Lines to be deleted if index is greater than 0. No need to write Prec and epot over and over, once it is written
+    lines_to_delete = [
+        'self.Precipitation = Prec.csv\n',
+        'self.PotEvaporation = epot.csv\n'
+    ]
     
     # Modify lines containing 'intbl'
     modified_lines = []
@@ -52,6 +58,10 @@ def modify_and_save_ini2(file_path, index, new_numbers, new_file_path):
             modified_lines.append(modified_line)
         else:
             modified_lines.append(line)
+            
+    # If index is greater than 0, remove specified lines
+    if index > 0:
+        modified_lines = [line for line in modified_lines if line not in lines_to_delete]
     
     # Save the modified content to a new file
     with open(new_file_path, 'w', encoding='utf-8') as new_file:

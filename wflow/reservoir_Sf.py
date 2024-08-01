@@ -141,6 +141,68 @@ def fastRunoff_lag2(self, k):
 #    self.QuA_[k] = self.Qu
 
 
+def fastRunoff_lag3(self, k):
+    """
+    - Lag is applied before inflow into the fast reservoir
+    - Lag formula is derived from Fenicia (2011)
+    - Outgoing fluxes are determined based on (value in previous timestep + inflow)
+    and if this leads to negative storage, the outgoing fluxes are corrected to ratio
+    - not a semi analytical solution for Sf anymore
+    - Code for ini-file: 2
+    """
+    # Calculate Qu
+    self.Qu = (pcr.areatotal(self.Qu_[k] * self.percentArea, pcr.nominal(self.TopoId)) 
+                if self.FR_L else self.Qu_[k])
+    
+    Qfin = (1 - self.D[k]) * self.Qu #Dkim self.Qfin to Qfin
+
+    if self.maxD[k] < 1:
+        Sf_k = self.Sf[k]
+        alfa_k = self.alfa[k]
+        Kf_k = self.Kf[k]
+
+        if self.convQu[k]:
+            convQu_k = self.convQu[k]
+            Tfmap_k = self.Tfmap[k]
+
+            self.QfinLag = convQu_k[-1]
+            self.Qf = pcr.min(Sf_k, Sf_k ** alfa_k * Kf_k)
+            self.Sf[k] = Sf_k + self.QfinLag - self.Qf
+
+            convQu_k.insert(0, self.ZeroMap)
+            convQu_k.pop()
+
+            # Pre-calculate factors for the list comprehension
+            factor1 = 2 / Tfmap_k
+            factor2 = 2 / (Tfmap_k * (Tfmap_k + 1))
+            
+            # Update convQu using optimized list comprehension
+            self.convQu[k] = [
+                convQu_ki + (factor1 - factor2 * (Tfmap_k - i)) * Qfin
+                for i, convQu_ki in enumerate(convQu_k)
+            ]
+        else:
+            self.Qf = pcr.min(Sf_k, Sf_k ** alfa_k * Kf_k)
+            self.Sf[k] = Sf_k + Qfin - self.Qf
+    else:
+        self.Qf = self.ZeroMap
+        self.Qfinput_[k] = self.ZeroMap
+        self.Qfin_[k] = self.ZeroMap
+
+    if hasattr(self, 'wbSf_[k]'):
+        self.wbSf_[k] = (
+            Qfin
+            - self.Qf
+            - self.Sf[k]
+            + self.Sf_t[k]
+            - sum(self.convQu[k])
+            + sum(self.convQu_t[k])
+        )
+
+    self.Qf_[k] = self.Qf
+
+
+
 def fastRunoff_lag_forAgri_combined(self, k):
     """
     - Lag is applied before inflow into the fast reservoir
@@ -267,6 +329,66 @@ def fastRunoff_lag_agriDitch(self, k):
         ) #WBtest
 
     self.Qfa_[k] = self.Qfa
+
+
+def fastRunoff_lag_agriDitch2(self, k):
+    """
+    - Lag is applied before inflow into the fast reservoir
+    - Lag formula is derived from Fenicia (2011)
+    - Outgoing fluxes are determined based on (value in previous timestep + inflow)
+    and if this leads to negative storage, the outgoing fluxes are corrected to ratio
+    - not a semi analytical solution for Sf anymore
+    - very fast responding reservoir to represent fast drainage via roads and ditches
+    - Code for ini-file: 4
+    """
+    # Calculate Qa
+    self.Qa = (pcr.areatotal(self.Qa_[k] * self.percentArea, pcr.nominal(self.TopoId)) 
+                if self.FR_L else self.Qa_[k])
+    self.Qfain = self.Qa
+
+    if self.convQa[k]:
+        convQa_k = self.convQa[k]
+        Tfamap_k = self.Tfamap[k]
+        Sfa_k = self.Sfa[k]
+        Kfa_k = self.Kfa[k]
+
+        # Calculate QfainLag and Qfa
+        self.QfainLag = convQa_k[-1]
+        self.Qfa = Sfa_k * Kfa_k
+
+        # Update Sfa
+        self.Sfa[k] = Sfa_k + self.QfainLag - self.Qfa
+
+        # Update convQa
+        convQa_k.insert(0, 0 * pcr.scalar(self.catchArea))
+        convQa_k.pop()
+
+        # Pre-calculate factors for the list comprehension
+        factor1 = 2 / Tfamap_k
+        factor2 = 2 / (Tfamap_k * (Tfamap_k + 1))
+        
+        # Update convQa using optimized list comprehension
+        self.convQa[k] = [
+            convQa_ki + (factor1 - factor2 * (Tfamap_k - i)) * self.Qfain
+            for i, convQa_ki in enumerate(convQa_k)
+        ]
+    else:
+        self.Qfa = self.Sfa[k] * self.Kfa[k]
+        self.Sfa[k] = self.Sfa[k] + self.Qfain - self.Qfa
+
+    # Water balance calculation
+    if hasattr(self, 'wbSfa_[k]'):
+        self.wbSfa_[k] = (
+            self.Qfain
+            - self.Qfa
+            - self.Sfa[k]
+            + self.Sfa_t[k]
+            - sum(self.convQa[k])
+            + sum(self.convQa_t[k])
+        )
+
+    self.Qfa_[k] = self.Qfa
+
 
 
 def fastRunoff_lag_agriDitch_reInfilt(self, k):
@@ -548,10 +670,11 @@ def routingQf_Qs_grid_EIA2(self):
     #    self.Qfimp / 1000 * self.surfaceArea * self.EIA / self.timestepsecs
     #)  # Qeia local discharge in m3/s
     
-    self.Qtotal = self.Qftotal * (1 - self.EIA) + self.Qfimp * self.EIA + self.Qs_  # total local discharge in mm/hour
+    #self.Qtotal = self.Qftotal * (1 - self.EIA) + self.Qfimp * self.EIA + self.Qs_  # total local discharge in mm/hour
 
     self.Qstate_t = self.Qstate
-    Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
+    #Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
+    Qtest = self.Qstate + self.Qftotal * (1 - self.EIA) + self.Qfimp * self.EIA + self.Qs_  #DKim: all at once.
     #self.Qeiastate_t = self.Qeiastate
     #Qeiatest = self.Qeiastate + self.Qeia # DKim: using this instead.
     
@@ -618,3 +741,57 @@ def routingQf_Qs_grid2(self):
         self.WB_rout = (
             pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia - self.dSdt) - self.Qrout - self.Qrouteia
         ) / pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qeia) #wbtest
+
+
+        
+ 
+def routingQf_Qs_grid_TIA2(self):
+    """
+    - For the faster model run
+    - Routing of both Qf and Qs
+    - based on a velocity map
+    - Can write both CMS and mm
+    """
+    #self.Qtotal = (
+    #    self.Qtot * self.unitconverter # (1 - self.EIA) as we are converting "mm" from pervious
+    #)  # total local discharge in m3/s
+    #self.Qeia = (
+    #    self.Qfimp / 1000 * self.surfaceArea * self.EIA / self.timestepsecs
+    #)  # Qeia local discharge in m3/s
+    
+    self.Qtotal = self.Qftotal * (1 - self.TIA) + self.Qfimp * self.TIA + self.Qs_  # total local discharge in mm/hour
+
+    self.Qstate_t = self.Qstate
+    Qtest = self.Qstate + self.Qtotal # DKim: using this instead.
+    #self.Qeiastate_t = self.Qeiastate
+    #Qeiatest = self.Qeiastate + self.Qeia # DKim: using this instead.
+    
+    self.Qrout = pcr.accutraveltimeflux(
+        self.TopoLdd, Qtest, self.velocity
+    )
+    #self.Qrouteia = pcr.accutraveltimeflux(
+    #    self.TopoLdd, Qeiatest, self.velocity
+    #)
+
+    self.Qstate = pcr.accutraveltimestate(
+        self.TopoLdd, Qtest, self.velocity
+    )
+    #self.Qeiastate = pcr.accutraveltimestate(
+    #    self.TopoLdd, Qeiatest, self.velocity
+    #)
+
+    #self.QLagTotmm = self.Qrout + self.Qrouteia
+    self.QLagTotmm = self.Qrout #mm/h
+
+    self.Qtlag = self.Qrout * self.unitconverter #m3/s
+    #self.Qeialag = self.Qrouteia * self.unitconverter #m3/s
+
+    #self.QLagTot = self.Qtlag + self.Qeialag
+    self.QLagTot = self.Qtlag #m3/s
+
+    # water balance of flux routing
+    if hasattr(self, 'WB_rout'):
+        self.dSdt = self.Qstate - self.Qstate_t
+        self.WB_rout = (
+            pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qtia - self.dSdt) - self.Qrout - self.Qrouteia
+        ) / pcr.accuflux(self.TopoLdd, self.Qtotal + self.Qtia) #wbtest

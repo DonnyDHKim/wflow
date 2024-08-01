@@ -3048,7 +3048,7 @@ class wf_DynamicFramework(pcraster.framework.frameworkBase.FrameworkBase):
             self.DT.update(incrementStep=True, mode=self.runlengthdetermination)
             self._userModel().currentdatetime = self.DT.currentDateTime
 
-            self.wf_savedynMaps()
+            #self.wf_savedynMaps() #DKIM: testing
             self.wf_saveTimeSeries()
 
             self.logger.debug(
@@ -3067,6 +3067,84 @@ class wf_DynamicFramework(pcraster.framework.frameworkBase.FrameworkBase):
             self.setviaAPI = {}
 
         self._userModel()._setInDynamic(False)
+
+
+
+
+    def _runDynamic2(self, firststep, laststep):
+        """
+        Runs the dynamic model from firststep to laststep
+    
+        Input:
+            :ivar firststep: first timestep of the model run
+            :ivar laststep: last timestep of the model run
+        """
+        user_model = self._userModel()
+        user_model._setInDynamic(True)
+    
+        step = self._d_firstTimestep if firststep == 0 else firststep
+        laststep = self._d_lastTimestep if laststep == 0 else laststep
+        user_model._setNrTimeSteps(int(laststep))
+        nrTimeSteps = user_model.nrTimeSteps
+    
+        dt_update = self.DT.update
+        increment_indent = self._incrementIndentLevel
+        decrement_indent = self._decrementIndentLevel
+        trace_in = self._traceIn
+        trace_out = self._traceOut
+        dynamic_method = getattr(user_model, "dynamic", None)
+        quick_suspend = self.wf_QuickSuspend
+        save_time_series = self.wf_saveTimeSeries
+        logger_debug = self.logger.debug
+        time_step_finished = self._timeStepFinished
+        set_via_api = self.setviaAPI
+        statslst = self.statslst
+        onlinestat = self.onlinestat
+        onlinestat_getstat = onlinestat.getstat
+        DT_currentDateTime = self.DT.currentDateTime
+        DT_lastTimeStep = self.DT.lastTimeStep
+    
+        dt_update(currentTimeStep=self.DT.currentTimeStep, mode=self.runlengthdetermination)
+    
+        while step <= nrTimeSteps():
+            increment_indent()
+            self._atStartOfTimeStep(step)
+            user_model._setCurrentTimeStep(step)
+    
+            if dynamic_method:
+                increment_indent()
+                trace_in("dynamic")
+                dynamic_method()
+                trace_out("dynamic")
+                decrement_indent()
+                quick_suspend()
+    
+            for stat in statslst:
+                data = getattr(user_model, stat.varname)
+                stat.add_one(data)
+    
+            for key in onlinestat.statvarname:
+                stvar = onlinestat_getstat(getattr(user_model, key), key)
+                setattr(user_model, onlinestat.statvarname[key], stvar)
+    
+            dt_update(incrementStep=True, mode=self.runlengthdetermination)
+            user_model.currentdatetime = DT_currentDateTime
+    
+            save_time_series()
+            logger_debug(
+                f"timestep: {user_model.currentTimeStep()}/{DT_lastTimeStep} ({DT_currentDateTime})"
+            )
+    
+            time_step_finished()
+            decrement_indent()
+            step += 1
+            set_via_api.clear()
+    
+        user_model._setInDynamic(False)
+
+
+
+
 
     ## \brief Re-implemented from ShellScript.
     #

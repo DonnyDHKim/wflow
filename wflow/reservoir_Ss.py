@@ -50,6 +50,8 @@ def groundWaterCombined3(self):
     """
 
     self.Recharge = [x * y for x, y in zip(self.Qu_, self.D)]
+    if hasattr(self, 'EIA'):
+        self.Recharge = [r * (1 - self.EIA) for r in self.Recharge]
     self.QsinClass = [
         a + b - c for a, b, c in zip(self.Recharge, self.Perc_, self.Cap_)
     ]  # all fluxes are summed per class
@@ -69,11 +71,11 @@ def groundWaterCombined3(self):
     )  # if negative, limited by storage in Ss
     self.Ss = self.Ss * pcr.exp(-self.Ks[0]) + self.Qsin + self.Gain
 
-    self.wbSs = self.Qsin - self.Qs - self.Ss + self.Ss_t + self.Gain
+    #self.wbSs = self.Qsin - self.Qs - self.Ss + self.Ss_t + self.Gain
 
     self.Qs_ = self.Qs
-    self.Recharge_ = self.Recharge
-    self.QsinClass_ = self.QsinClass
-    self.QsinTemp_ = self.QsinTemp
-    self.Qsin_ = self.Qsin
-    self.Gain_ = self.Gain
+    #self.Recharge_ = self.Recharge
+    #self.QsinClass_ = self.QsinClass
+    #self.QsinTemp_ = self.QsinTemp
+    #self.Qsin_ = self.Qsin
+    #self.Gain_ = self.Gain

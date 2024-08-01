@@ -68,7 +68,7 @@ class WflowModel(pcraster.framework.DynamicModel):
       
       """
         pcraster.framework.DynamicModel.__init__(self)
-        pcr.setclone(os.path.join(Dir, "staticmaps", cloneMap))
+        pcr.setclone(os.path.join(Dir, "staticmaps", cloneMap)) # 1. remove "staticmaps". 2. Then make "cloneMap" to contain full directory
         self.runId = RunDir
         self.caseName = os.path.abspath(Dir)
         self.Dir = os.path.abspath(Dir)
@@ -688,6 +688,10 @@ class WflowModel(pcraster.framework.DynamicModel):
         #read D from .tbl file instead of from inifile 
 #        self.D = eval(str(configget(self.config, "model", "D", "[0]")))
         self.D = [self.readtblDefault2(self.Dir + "/" + self.intbl + "/D" + self.NamesClasses[i] + ".tbl",self.LandUse,subcatch,self.Soil,0.2) for i in self.Classes]
+
+        #self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
+        self.D = [pcr.ifthenelse(self.D[i] >= 1, 0.95, self.D[i]) for i in self.Classes]        #DKim: adding self.D constraining here to fasten up the runtime, which was originally done in reservoir_Sf.
+        self.maxD = [pcr.pcr2numpy(self.D[i], mv=-999).max() for i in self.Classes] #DKim: optimization for Sf
         
         self.Tf = eval(str(configget(self.config, "model", "Tf", "[0]")))
         self.Tfmap = [self.Tf[i] * pcr.scalar(self.catchArea) for i in self.Classes] #DKim: optimization for Sf
@@ -696,7 +700,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.Tfimp  = eval(str(configget(self.config, "model", "Tfimp", "[1]"))) #DKim
         self.Tfimpmap = self.Tfimp[0] * pcr.scalar(self.catchArea) #DKim: optimization for Sf #reservoir_Simp.py
         #self.velocity = self.velocity * (1-self.TIA) + 2 * self.velocity * (self.TIA - self.EIA) + 3 * (self.EIA)        #DKIM: urban adaptation of velocity map
-        self.velocity = self.velocity * (1-self.EIA) + 4 * self.velocity * (self.EIA)        #DKIM: urban adaptation of velocity map2
+        self.velocity = self.velocity * (1-self.TIA) + 4 * self.velocity * (self.TIA)        #DKIM: urban adaptation of velocity map2
 
         # MODEL PARAMETERS - BASED ON TABLES
         self.imax = [
@@ -754,26 +758,16 @@ class WflowModel(pcraster.framework.DynamicModel):
         #self.beta[0] = self.beta[0] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in wetland. Only for test purpose. Madly inaccurate.
         #self.beta[1] = self.beta[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: beta in hillslope
         #self.beta[2] = self.beta[2] * (1 + 0.03/2 * self.TIA * 100) #DKim: beta in plateau. Decided not to implement after series of testing.
-        self.UKEI = (0.01 + 0.04 * self.TIA ** (1 / np.e)) * self.TIA
-        self.beta_H_og = self.beta[1]
-        self.beta[1] = pcr.min(self.beta[1] * (1 + 15 * (1/self.beta[1])**0.5 * self.UKEI**0.8), 5) #DKim: beta in hillslope
-        self.beta[2] = pcr.min(self.beta[2] * (1 + 15 * (1/self.beta[2])**0.5 * self.UKEI**0.8), 5) #DKim: beta in plateau. At first, I decided not to implement after series of testing. However, logically, it should be implemented.
-        
-        
-        #self.D[1] = self.D[1] * pcr.exp((-1.4) * self.TIA / 2) #DKim: Hillslope D parameter modification by TIA
-        self.D[1] = self.D[1] *(self.beta_H_og / self.beta[1])
-        self.D = [pcr.ifthenelse(self.D[i] >= 1, 0.95, self.D[i]) for i in self.Classes]        #DKim: adding self.D constraining here to fasten up the runtime, which was originally done in reservoir_Sf.
-        self.maxD = [pcr.pcr2numpy(self.D[i], mv=-999).max() for i in self.Classes] #DKim: optimization for Sf
-        #self.betaA = [
-        #    self.readtblDefault2(
-        #        self.Dir + "/" + self.intbl + "/betaA" + self.NamesClasses[i] + ".tbl",
-        #        self.LandUse,
-        #        subcatch,
-        #        self.Soil,
-        #        0.2,
-        #    )
-        #    for i in self.Classes
-        #]
+        self.betaA = [
+            self.readtblDefault2(
+                self.Dir + "/" + self.intbl + "/betaA" + self.NamesClasses[i] + ".tbl",
+                self.LandUse,
+                subcatch,
+                self.Soil,
+                0.2,
+            )
+            for i in self.Classes
+        ]
         self.alfa = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/alfa" + self.NamesClasses[i] + ".tbl",
@@ -796,13 +790,6 @@ class WflowModel(pcraster.framework.DynamicModel):
         ]
         #self.Kf[1] = self.Kf[1] * (1 + 0.02/2 * self.TIA * 100) #DKim: Kf in hillslope (distributed). Just for test purpose.
         #self.Kf[0] = self.Kf[0] * (1 + (self.TIA - self.EIA)/2 * 4.5)
-        self.Kf[0] = self.Kf[0] * ((1-self.TIA) + (self.TIA - self.EIA)* 4.5)
-        self.Kf[1] = self.Kf[1] * ((1-self.TIA) + self.UKEI * 64.5) #DKim: Kf in hillslope (distributed). Just for test purpose.
-        self.Kf[2] = self.Kf[2] * ((1-self.TIA) + self.UKEI * 64.5) #DKim: Kf in Plateau (distributed). Just for test purpose.
-        self.Kf[0] = pcr.ifthenelse(self.Kf[0] > 1, 1, self.Kf[0])
-        self.Kf[1] = pcr.ifthenelse(self.Kf[1] > 1, 1, self.Kf[1])
-        self.Kf[2] = pcr.ifthenelse(self.Kf[2] > 1, 1, self.Kf[2])
-
         self.Kfa = [
             self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/Kfa" + self.NamesClasses[i] + ".tbl",
@@ -813,15 +800,12 @@ class WflowModel(pcraster.framework.DynamicModel):
             )
             for i in self.Classes
         ]
-        self.Kfa[2] = self.Kfa[2] * ((1-self.TIA) + (self.TIA - self.EIA)* 4.5)
-        self.Kfa[2] = pcr.ifthenelse(self.Kfa[2] > 1, 1, self.Kfa[2])
-
         self.Kfimp = self.readtblDefault2(
                 self.Dir + "/" + self.intbl + "/Kfimp.tbl",
                 self.LandUse,
                 subcatch,
                 self.Soil,
-                0.05,
+                1.0,
             )#DKim
         #self.Kfimp = self.Kfimp * (1 + (self.EIA) * 3.5) #testing with distributed layout first: self.Kimp * ((1-self.EIA) + (self.EIA *4.5))
         #self.Kfimp = self.Kfimp  * (1 + 4.5 * (self.EIA / self.TIA))
@@ -1710,8 +1694,8 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.AET = (
             sum(np.multiply(self.Eu_, self.percent))
             + sum(np.multiply(self.Ea_, self.percent))
-            + np.multiply(self.Eimp, self.EIA)
-        )  # Actual evaporation        
+            + np.multiply(self.Eimp, self.TIA) #DKim: using TIA instead of EIA
+        )  # Actual evaporation
 
 
 # The main function is used to run the program from the command line

@@ -66,6 +66,13 @@ def update_progress(result):
         out.clear_output(wait=True)
         print(f"Completed {completed_count}/{total_tasks} processes.")
 
+def extract_number(folder_name):
+    try:
+        # Split by "_" and get the last part
+        return int(folder_name.split('_')[-1])
+    except ValueError:
+        return None
+
 # Setup the Output widget
 out = Output()
 display(out)
@@ -80,7 +87,7 @@ if __name__ == "__main__":
     parser.add_argument('--datetimeend', type=lambda s: dt.datetime.strptime(s, '%Y-%m-%d %H:%M:%S'), required=True, help="End date in 'YYYY-MM-DD HH:MM:SS' format")
     parser.add_argument('--model_ver', nargs='+', required=True, help="List of model versions to run")
     parser.add_argument('--sp_config', type=str, required=True, help="Spatial configuration string")
-    parser.add_argument('--sample_size', type=str, required=True, help="Sample size, determined by the parameterset CSV file")
+#    parser.add_argument('--sample_size', type=str, required=True, help="Sample size, determined by the parameterset CSV file")
     parser.add_argument('--num_processes', type=int, required=True, help="Number of processes to use")
 
     args = parser.parse_args()
@@ -89,16 +96,27 @@ if __name__ == "__main__":
     display(out)
 
     #df = pd.read_csv(args.csv_path)#.iloc[250:499, :] #adjust if needed?
-    sample_size = int(args.sample_size)
+#    sample_size = int(args.sample_size)
 
-    caseName = os.path.join("D:\\", "wflow_models", args.wsName)
+    caseName = os.path.join("D:\\", "wflow_models", args.wsName)   
     wflow_cloneMap = 'wflow_subcatch.map' 
-    
+
+    # Get the list of folders in the "./temp" directory
+    temp_directory = os.path.join("D:\\", "wflow_models", args.wsName, "temp")
+    folders = [f for f in os.listdir(temp_directory) if os.path.isdir(os.path.join(temp_directory, f))]
+    # Extract the numeric part from each folder name
+    numbers = [extract_number(folder) for folder in folders]
+    # Filter out None values (in case some folders don't match the expected pattern)
+    numbers = [num for num in numbers if num is not None]
+    numbers.sort()
+    print("Running models for: ", str(len(numbers)))
+
     set_start_method('spawn')
     num_processes = args.num_processes
     args_list = []
 #    for i in range(len(df)):
-    for i in range(0, sample_size): # adjust if needed?
+#    for i in range(0, sample_size): # adjust if needed?
+    for i in numbers: # adjust if needed?
         for model in args.model_ver:
             if model == "wflow_tofuflex":
                 args_list.append((
@@ -123,6 +141,17 @@ if __name__ == "__main__":
                     args.datetimeend
                 ))
                 #print(glob.glob(os.path.join(caseName, os.path.join("temp", str(i), "intbl") + "/*.tbl")))
+            elif model == "wflow_tofuflex_t":
+                args_list.append((
+                    wflow_cloneMap, 
+                    caseName, 
+                    "wflow_tofuflex_t", 
+                    os.path.join(str(args.outpath), f"t_{i}"), 
+                    os.path.join("temp", str(i), f"wflow_tofuflex_ns{args.sp_config}_{i}.ini"),
+                    os.path.join("temp", str(i), "intbl"),
+                    args.datetimestart,
+                    args.datetimeend
+                ))
             elif model == "wflow_topoflex_bm":
                 args_list.append((
                     wflow_cloneMap, 

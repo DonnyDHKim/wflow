@@ -1362,7 +1362,7 @@ class WflowModel(pcraster.framework.DynamicModel):
         self.Sfa_t = copylist(self.Sfa)
         self.Sfimp_t = self.Sfimp #DKim
         self.Ss_t = self.Ss
-        self.trackQ_t = copylist(self.trackQ)  # copylist(self.trackQ)
+        #self.trackQ_t = copylist(self.trackQ)  # copylist(self.trackQ)
         self.convQu_t = [
             copylist(self.convQu[i]) for i in self.Classes
         ]  # copylist(self.convQu)
@@ -1409,6 +1409,18 @@ class WflowModel(pcraster.framework.DynamicModel):
         # if self.thestep >= 45:
         # pdb.set_trace()
 
+
+        # DKim: Impervious fast runoff reservoir=======================================
+        method_name = self.selectSimp if self.selectSimp else 'impervious_no_lag'
+        method_to_call = getattr(reservoir_Simp, method_name)  # Retrieve the method
+        method_to_call(self)  # Call the method
+        #if self.selectSimp:
+        #    eval_str = "reservoir_Simp.{:s}(self)".format(self.selectSimp)
+        #else:
+        #    eval_str = "reservoir_Simp.impervious_no_lag(self)"
+        #eval(eval_str)
+
+
         for k in self.Classes:
 
             # SNOW =================================================================================================
@@ -1451,16 +1463,6 @@ class WflowModel(pcraster.framework.DynamicModel):
         method_to_call = getattr(reservoir_Ss, method_name)  # Retrieve the method
         method_to_call(self)  # Call the method
 
-
-        # DKim: Impervious fast runoff reservoir=======================================
-        method_name = self.selectSimp if self.selectSimp else 'impervious_no_lag'
-        method_to_call = getattr(reservoir_Simp, method_name)  # Retrieve the method
-        method_to_call(self)  # Call the method
-        #if self.selectSimp:
-        #    eval_str = "reservoir_Simp.{:s}(self)".format(self.selectSimp)
-        #else:
-        #    eval_str = "reservoir_Simp.impervious_no_lag(self)"
-        #eval(eval_str)
 
 
         # ROUTING
@@ -1692,9 +1694,8 @@ class WflowModel(pcraster.framework.DynamicModel):
         #self.QCatchmentMM = self.Qstate * self.QMMConvUp #DKim: Unnecessary
         
         self.AET = (
-            sum(np.multiply(self.Eu_, self.percent))
-            + sum(np.multiply(self.Ea_, self.percent))
-            + np.multiply(self.Eimp, self.EIA)
+            np.multiply((sum(np.multiply(self.Eu_, self.percent)) + sum(np.multiply(self.Ea_, self.percent))), (1 - self.TIA))
+            + np.multiply(self.Eimp, self.TIA)
         )  # Actual evaporation
 
 

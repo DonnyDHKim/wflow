@@ -204,6 +204,87 @@ def unsatZone_LP_beta(self, k):
 #    self.Quadd_[k] = self.Quadd
 
 
+
+
+def unsatZone_LP_beta2(self, k):
+    """
+    - Potential evaporation is decreased by energy used for interception evaporation
+    - Formula for evaporation linear until LP, from than with potential rate
+    - Outgoing fluxes are determined based on (value in previous timestep + inflow)
+    and if this leads to negative storage, the outgoing fluxes are corrected to rato
+    - Qu is determined with a beta function (same as in HBV?)
+    - Code for ini-file: 1
+    """
+	
+    Su_operator = self.Su_t[k] + self.Pe # DKim: this operation is done way too many times
+    
+    #self.Su[k] = pcr.ifthenelse(
+    #    Su_operator > self.sumax[k], self.sumax[k], Su_operator
+    #)
+    Su_k = pcr.min(Su_operator, self.sumax[k])
+
+    #self.Quadd = pcr.ifthenelse(
+    #    Su_operator > self.sumaxf[k],
+    #    Su_operator - self.sumax[k],
+    #    0,
+    #)
+    Quadd = pcr.max(Su_operator - self.sumax[k], 0) #excess water
+    
+    SuN = Su_k / self.sumax[k]
+    #self.SiN = self.Si[k] / self.imax[k]
+
+    Eu1 = pcr.max((self.PotEvaporation - self.Ei), 0) * pcr.min(
+        Su_k / (self.sumax[k] * self.LP[k]), 1
+    )
+
+    delta_Pe_Quadd = self.Pe - Quadd # DKim: this operation is done way too many times
+	
+    Qu1 = (delta_Pe_Quadd) * (1 - (1 - SuN) ** self.beta[k])
+    Perc1 = self.perc[k] * SuN
+    
+    WB_operator = Qu1 + Eu1 + Perc1 # DKim: this operation is done way too many times
+
+    Su_k = (
+        self.Su_t[k] + (delta_Pe_Quadd) - WB_operator
+    )
+
+    Su_diff = pcr.ifthenelse(Su_k < 0, Su_k, 0)
+    
+    adjustment_factor = Su_diff / pcr.ifthenelse(WB_operator > 0, WB_operator, 1)
+	
+    self.Eu = Eu1 + Eu1 * adjustment_factor
+    self.Qu = Qu1 + Qu1 * adjustment_factor
+    Perc = pcr.ifthenelse(Perc1 > 0, Perc1 + Perc1 * adjustment_factor, Perc1)
+    
+
+    Su_k = self.Su_t[k] + (delta_Pe_Quadd) - self.Eu - self.Qu - Perc
+    Su_k = pcr.max(Su_k, 0)
+    #Su_diff2 = pcr.ifthen(self.Su[k] < 0, self.Su[k]) #Not sure why this exist
+
+    Cap = pcr.min(self.cap[k] * (1 - Su_k / self.sumax[k]), self.Ss)
+    self.Su[k] = Su_k + Cap
+
+    if hasattr(self, 'wbSu_[k]'):
+        self.wbSu_[k] = (
+            self.Pe
+            - self.Eu
+            - self.Qu
+            - Quadd
+            - Perc
+            + self.Cap
+            - self.Su[k]
+            + self.Su_t[k]
+        ) #WB test
+
+    self.Eu_[k] = self.Eu
+    self.Qu_[k] = self.Qu + Quadd
+    self.Cap_[k] = Cap
+    self.Perc_[k] = Perc
+#+========================================================
+
+
+
+
 def unsatZone_LP_beta_Jarvis(self, k):
     """
     - Potential evaporation is decreased by energy used for interception evaporation
@@ -2136,4 +2217,68 @@ def unsatZone_forAgri_hourlyEp_urb(self, k):
     self.Eu_[k] = self.Eu
     self.Qu_[k] = self.Qu + self.Quadd
     self.Cap_[k] = self.Cap
+    self.Perc_[k] = self.Perc
+
+
+
+def unsatZone_forAgri_hourlyEp_urb2(self, k):
+    """
+    Implemented by Dkim.
+    Intended to work with reservoir_Sa "urbZone_hourlyEp_Sa_beta_EIA". Changes are marked with comments.
+    - Potential evaporation is decreased by energy used for interception evaporation    
+    - Formula for evaporation based on beta/LP
+    - Outgoing fluxes are determined based on (value in previous timestep + inflow) 
+    and if this leads to negative storage, the outgoing fluxes are corrected to ratio --> Eu is 
+    no longer taken into account for this correction
+    - Qu is determined with a beta function (same as in HBV?)
+    - inflow is infiltration from agriculture reservoir
+    - Code for ini-file: 22
+    """
+
+    Su_operator = self.Su_t[k] + self.Fa
+    
+    Su_k = pcr.min(Su_operator, self.sumax[k])
+    Quadd = pcr.max(Su_operator - self.sumax[k], 0)
+
+    SuN = Su_k / self.sumax[k]
+
+    Eu1 = pcr.max((self.PotEvaporation - self.Ea), 0) * pcr.min(Su_k / (self.sumax[k] * self.LP[k]), 1)
+
+    delta_Fa_Quadd = self.Fa - Quadd
+    
+    Qu1 = delta_Fa_Quadd * (1 - (1 - SuN) ** self.beta[k])
+    Perc1 = self.perc[k] * SuN
+    
+    WB_operator = Qu1 + Eu1 + Perc1
+
+    Su_k = self.Su_t[k] + delta_Fa_Quadd - WB_operator
+    Su_diff = pcr.ifthenelse(Su_k < 0, Su_k, 0)
+    
+    adjustment_factor = Su_diff / pcr.ifthenelse(WB_operator > 0, WB_operator, 1)
+    
+    self.Eu = Eu1 + Eu1 * adjustment_factor
+    self.Qu = Qu1 + Qu1 * adjustment_factor
+    self.Perc = pcr.ifthenelse(Perc1 > 0, Perc1 + Perc1 * adjustment_factor, Perc1)
+
+    Su_k = self.Su_t[k] + delta_Fa_Quadd - self.Eu - self.Qu - self.Perc
+    Su_k = pcr.max(Su_k, 0)
+
+    Cap = pcr.min(self.cap[k] * (1 - Su_k / self.sumax[k]), self.Ss)
+    self.Su[k] = Su_k + Cap
+
+    if hasattr(self, 'wbSu_'):
+        self.wbSu_[k] = (
+            self.Fa
+            - self.Eu
+            - self.Qu
+            - Quadd
+            - self.Perc
+            + Cap
+            - self.Su[k]
+            + self.Su_t[k]
+        )
+
+    self.Eu_[k] = self.Eu
+    self.Qu_[k] = self.Qu + Quadd
+    self.Cap_[k] = Cap
     self.Perc_[k] = self.Perc
